@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTrack Pro: Command Center</title>
+    <title>EduTrack Pro v1.2: Microsoft Teams Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -19,6 +19,9 @@
             --danger: #d13438;
             --success: #92c353;
             --warning: #ffb900;
+            --bronze: #cd7f32;
+            --silver: #c0c0c0;
+            --gold: #ffd700;
             --transition-speed: 0.3s;
         }
 
@@ -64,10 +67,13 @@
             align-items: center;
             justify-content: center;
             color: var(--teams-text-secondary);
+            background: transparent;
+            border: none;
             cursor: pointer;
             font-size: 10px;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
+            padding: 0;
         }
         .nav-item:hover { color: var(--teams-text); background: rgba(255,255,255,0.05); }
         .nav-item.active { color: var(--teams-purple); border-left: 3px solid var(--teams-purple); background: rgba(98, 100, 167, 0.1); }
@@ -82,28 +88,17 @@
             fill: none;
             transition: stroke 0.2s, transform 0.2s;
         }
-        .nav-item:hover .nav-icon-svg {
-            stroke: var(--teams-text);
-            transform: scale(1.1);
-        }
+        .nav-item:hover .nav-icon-svg { stroke: var(--teams-text); transform: scale(1.1); }
 
-        /* Animations for SVGs */
         @keyframes pulse-stroke {
             0% { stroke-width: 1.5; }
             50% { stroke-width: 2.5; stroke: var(--teams-purple); }
             100% { stroke-width: 1.5; }
         }
-        .nav-item.active .nav-icon-svg {
-            animation: pulse-stroke 2s infinite ease-in-out;
-        }
+        .nav-item.active .nav-icon-svg { animation: pulse-stroke 2s infinite ease-in-out; }
 
         /* ⬜ Main Workspace */
-        .main-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        .main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
         header {
             height: 48px;
@@ -117,13 +112,8 @@
         .logo { font-weight: 700; font-size: 14px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
         .logo span { color: var(--teams-purple); }
 
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+        .header-controls { display: flex; align-items: center; gap: 15px; }
 
-        /* Toggle Switch */
         .theme-toggle {
             cursor: pointer;
             width: 40px;
@@ -147,12 +137,10 @@
         body.light-mode .theme-toggle { background: var(--teams-purple); }
         body.light-mode .theme-toggle::after { transform: translateX(20px); }
 
-        /* 📋 Dashboard Layout */
-        .content-area {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
+        /* 📋 Views */
+        .view-container { display: none; height: 100%; width: 100%; flex-direction: row; animation: slideIn 0.3s ease-out; }
+        .view-container.active { display: flex !important; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .task-sidebar {
             width: 300px;
@@ -161,7 +149,6 @@
             display: flex;
             flex-direction: column;
             padding: 20px;
-            transition: background var(--transition-speed);
         }
         .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--teams-text-secondary); margin-bottom: 16px; letter-spacing: 0.5px; }
 
@@ -176,10 +163,9 @@
             margin-bottom: 12px;
             font-size: 13px;
             outline: none;
-            transition: background 0.2s;
         }
-        .teams-input:focus { border-bottom-color: var(--teams-purple); background: rgba(0,0,0,0.2); }
-        .teams-textarea { height: 100px; resize: none; }
+        .teams-input:focus { border-bottom-color: var(--teams-purple); }
+        .teams-textarea { height: 80px; resize: none; }
 
         .btn-teams {
             background: var(--teams-purple);
@@ -197,12 +183,7 @@
         .btn-outline:hover { background: rgba(255,255,255,0.05); }
 
         /* 🪟 Monitoring Grid */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: rgba(0,0,0,0.05);
-        }
+        .main-content { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.05); }
 
         .stats-bar {
             height: 60px;
@@ -227,19 +208,89 @@
             align-content: start;
         }
 
-        /* Student Card */
+        /* 🏢 Classroom Map View (3D-ish) */
+        .map-view {
+            perspective: 1200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            overflow: auto;
+            background: #111;
+            width: 100%;
+            height: 100%;
+        }
+        .classroom-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 180px);
+            gap: 40px;
+            transform: rotateX(25deg);
+            transform-style: preserve-3d;
+            min-height: 100px;
+            min-width: 100px;
+        }
+        .map-desk {
+            width: 180px;
+            height: 120px;
+            background: var(--teams-card-bg);
+            border: 2px solid var(--teams-border);
+            border-radius: 4px;
+            position: relative;
+            transform: translateZ(10px);
+            transition: 0.5s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .map-desk:hover { transform: translateZ(30px); border-color: var(--teams-purple); box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .map-desk .screen-small { width: 140px; height: 80px; background: #000; border: 1px solid #333; margin-top: 5px; object-fit: cover; }
+        .desk-label { font-size: 10px; font-weight: 700; margin-top: 5px; color: var(--teams-text-secondary); }
+
+        /* Student Card Enhancements (Gamification) */
         .student-card {
             background: var(--teams-card-bg);
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid var(--teams-border);
-            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            transition: 0.2s;
             position: relative;
         }
-        .student-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-color: var(--teams-purple); }
-        .student-card.alert { border: 2px solid var(--danger); animation: alert-shake 0.5s; }
-
+        .student-card:hover { border-color: var(--teams-purple); transform: translateY(-2px); }
         .card-preview { width: 100%; aspect-ratio: 16/9; background: #111; display: block; object-fit: cover; cursor: pointer; }
+
+        /* Badges & Levels */
+        .card-badge-container { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; pointer-events: none; }
+        .badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: var(--teams-nav-bg);
+            border: 1px solid var(--teams-border);
+        }
+        .badge.gold { color: var(--gold); border-color: var(--gold); }
+        .badge.silver { color: var(--silver); border-color: var(--silver); }
+        .badge.clean { color: var(--success); border-color: var(--success); }
+
+        .level-tag {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: var(--teams-purple);
+            color: white;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
         .card-info { padding: 12px; }
         .student-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
         .status-badge { width: 10px; height: 10px; border-radius: 50%; background: var(--success); box-shadow: 0 0 5px var(--success); }
@@ -259,50 +310,38 @@
         }
         .feed-container { flex: 1; overflow-y: auto; font-size: 11px; color: var(--teams-text-secondary); }
         .feed-item { margin-bottom: 12px; border-bottom: 1px solid var(--teams-border); padding-bottom: 8px; animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .feed-time { color: var(--teams-purple); font-weight: 600; }
 
-        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.3s; }
-        #modal img { max-width: 95%; max-height: 95%; border: 3px solid var(--teams-purple); border-radius: 4px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-
-        /* Keyboard Shortcut Hint */
-        .shortcut-hint { font-size: 10px; color: var(--teams-text-secondary); margin-top: 5px; opacity: 0.7; }
-
-        /* View Containers */
-        .view-container { display: none; height: 100%; width: 100%; flex-direction: row; }
-        .view-container.active { display: flex; }
+        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        #modal img { max-width: 95%; max-height: 95%; border: 3px solid var(--teams-purple); border-radius: 4px; }
     </style>
 </head>
 <body>
-    <nav class="nav-rail">
-        <div class="nav-item active" onclick="switchView('dashboard')">
+    <nav class="nav-rail" role="navigation" aria-label="Menu główne">
+        <button class="nav-item active" onclick="switchView('dashboard')" aria-label="Pulpit nawigacyjny" id="nav-dashboard">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
             Dashboard
-        </div>
-        <div class="nav-item" onclick="switchView('chat')">
+        </button>
+        <button class="nav-item" onclick="switchView('map')" aria-label="Mapa sali" id="nav-map">
+            <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Mapa Sali
+        </button>
+        <button class="nav-item" onclick="switchView('chat')" aria-label="Czat" id="nav-chat">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             Czat
-        </div>
-        <div class="nav-item" onclick="switchView('tasks')">
-            <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            Zadania
-        </div>
-        <div class="nav-item" onclick="switchView('protection')">
-            <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Ochrona
-        </div>
-        <div class="nav-item" style="margin-top: auto; margin-bottom: 20px;" onclick="switchView('settings')">
+        </button>
+        <button class="nav-item" onclick="switchView('settings')" aria-label="Ustawienia" style="margin-top: auto; margin-bottom: 20px;" id="nav-settings">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Settings
-        </div>
+        </button>
     </nav>
 
     <div class="main-container">
         <header>
-            <div class="logo">EDU<span>TRACK</span> PRO | v1.1</div>
+            <div class="logo">EDU<span>TRACK</span> PRO | v1.2</div>
             <div class="header-controls">
                 <div id="connection-status" style="font-size: 11px; color: var(--success); font-weight: 600;">● SYSTEM ONLINE</div>
-                <div class="theme-toggle" onclick="toggleTheme()" title="Przełącz tryb Dark/Light"></div>
+                <div class="theme-toggle" onclick="toggleTheme()" aria-label="Przełącz tryb jasny/ciemny"></div>
             </div>
         </header>
 
@@ -310,39 +349,21 @@
         <div id="dashboard" class="view-container active">
             <aside class="task-sidebar">
                 <div class="section-title">Konfiguracja Egzaminu</div>
-                <input id="task-title" class="teams-input" type="text" placeholder="Tytuł zadania...">
-                <textarea id="task-desc" class="teams-input teams-textarea" placeholder="Instrukcje dla grupy..."></textarea>
-
-                <div class="section-title" style="margin-top: 10px;">Szablon Excel (.xlsx)</div>
-                <input type="file" id="task-template" accept=".xlsx" style="font-size: 11px; margin-bottom: 15px; color: var(--teams-text-secondary);">
-
-                <select id="task-type" class="teams-input">
-                    <option value="online">Tryb Online (Native JSheet)</option>
-                    <option value="offline">Tryb Lokalny (External Apps)</option>
-                </select>
-
+                <input id="task-title" class="teams-input" type="text" placeholder="Tytuł zadania..." aria-label="Tytuł zadania">
+                <textarea id="task-desc" class="teams-input teams-textarea" placeholder="Instrukcje dla grupy..." aria-label="Opis zadania"></textarea>
+                <div class="section-title" style="margin-top: 10px;">Szablon (.xlsx)</div>
+                <input type="file" id="task-template" accept=".xlsx" style="font-size: 11px; margin-bottom: 15px;">
                 <button class="btn-teams" onclick="startGlobalTask()">Wypchnij Zadanie</button>
-                <div class="shortcut-hint">Skrót: Ctrl + Enter</div>
 
-                <div class="section-title" style="margin-top: 30px;">Centrum Wiadomości</div>
-                <input id="global-msg" class="teams-input" type="text" placeholder="Ogłoszenie...">
-                <button class="btn-teams btn-outline" onclick="broadcastMessage()">Wyślij Globalnie</button>
+                <div class="section-title" style="margin-top: 30px;">Opcje Pomocy</div>
+                <button class="btn-teams btn-outline" style="width:100%" onclick="popoutDoc()">Otwórz Dokumentację (Pop-out)</button>
             </aside>
 
             <main class="main-content">
                 <div class="stats-bar">
-                    <div class="stat-item">
-                        <span class="stat-value" id="stat-active">0</span>
-                        <span class="stat-label">Uczniów</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="stat-alerts" style="color: var(--danger);">0</span>
-                        <span class="stat-label">Alerty</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="stat-avg-score">0%</span>
-                        <span class="stat-label">Śr. Wynik</span>
-                    </div>
+                    <div class="stat-item"><span class="stat-value" id="stat-active">0</span><span class="stat-label">Uczniów</span></div>
+                    <div class="stat-item"><span class="stat-value" id="stat-alerts" style="color: var(--danger);">0</span><span class="stat-label">Alerty</span></div>
+                    <div class="stat-item"><span class="stat-value" id="stat-avg-score">0%</span><span class="stat-label">Śr. Wynik</span></div>
                     <div class="stat-item" style="margin-left: auto;">
                         <span class="stat-label">Skóra:</span>
                         <input type="color" id="skin-picker" value="#6264a7" style="border:none; background:none; height:20px; width:40px; cursor:pointer;" onchange="changeSkin(this.value)">
@@ -352,16 +373,23 @@
             </main>
 
             <aside class="activity-feed">
-                <div class="section-title">Feed Aktywności</div>
+                <div class="section-title">Aktywność</div>
                 <div id="feed" class="feed-container"></div>
             </aside>
         </div>
 
-        <!-- OTHER VIEWS (Placeholders) -->
+        <!-- MAP VIEW -->
+        <div id="map" class="view-container">
+            <div class="map-view">
+                <div class="classroom-grid" id="map-grid">
+                    <!-- Map desks will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- PLACEHOLDERS -->
         <div id="chat" class="view-container"><div style="padding:40px"><h2>Moduł Czatu</h2><p>Wkrótce...</p></div></div>
-        <div id="tasks" class="view-container"><div style="padding:40px"><h2>Zarządzanie Bankiem Zadań</h2><p>Wkrótce...</p></div></div>
-        <div id="protection" class="view-container"><div style="padding:40px"><h2>Zaawansowana Ochrona</h2><p>Konfiguracja drivera blokującego...</p></div></div>
-        <div id="settings" class="view-container"><div style="padding:40px"><h2>Ustawienia Systemu</h2><p>Wersja 1.1.0-PRO</p></div></div>
+        <div id="settings" class="view-container"><div style="padding:40px"><h2>Ustawienia Systemu</h2><p>v1.2.0-PRO-FINAL</p></div></div>
     </div>
 
     <div id="modal" onclick="this.style.display='none'"><img id="modal-img"></div>
@@ -370,17 +398,14 @@
     <script>
         const socket = io();
         const grid = document.getElementById('grid');
+        const mapGrid = document.getElementById('map-grid');
         const feed = document.getElementById('feed');
         const students = {};
 
         function log(msg, type = 'info') {
             const div = document.createElement('div');
             div.className = 'feed-item';
-            const time = new Date().toLocaleTimeString();
-            let color = 'var(--teams-text-secondary)';
-            if(type === 'alert') color = 'var(--danger)';
-            if(type === 'success') color = 'var(--success)';
-            div.innerHTML = `<span class="feed-time">${time}</span><br><span style="color:${color}">${msg}</span>`;
+            div.innerHTML = `<span class="feed-time">${new Date().toLocaleTimeString()}</span><br><span>${msg}</span>`;
             feed.prepend(div);
         }
 
@@ -388,7 +413,6 @@
             document.body.classList.toggle('light-mode');
             localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
         }
-
         if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
 
         function changeSkin(color) {
@@ -404,139 +428,105 @@
             document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            document.getElementById('nav-' + viewId).classList.add('active');
         }
 
-        function updateStats() {
+        function getStudentLevel(score) {
+            if(!score || !score.includes('/')) return 1;
+            const [got, max] = score.split('/').map(Number);
+            return Math.floor((got / (max || 1)) * 5) + 1;
+        }
+
+        function updateUI() {
+            grid.innerHTML = '';
+            mapGrid.innerHTML = '';
             const keys = Object.keys(students);
             document.getElementById('stat-active').innerText = keys.length;
+
             let totalAlerts = 0;
             let totalScorePercent = 0;
             let scoredCount = 0;
 
             keys.forEach(id => {
-                const s = students[id].data;
-                if(s) {
-                    totalAlerts += (s.alerts || 0);
-                    if(s.lastScore && s.lastScore.includes('/')) {
-                        const [got, max] = s.lastScore.split('/').map(Number);
-                        if(max > 0) {
-                            totalScorePercent += (got/max);
-                            scoredCount++;
-                        }
-                    }
+                const s = students[id];
+                const data = s.data;
+                totalAlerts += (data.alerts || 0);
+
+                let scoreText = data.lastScore || '0/0';
+                if(scoreText.includes('/')) {
+                    const [got, max] = scoreText.split('/').map(Number);
+                    if(max > 0) { totalScorePercent += (got/max); scoredCount++; }
                 }
+
+                const level = getStudentLevel(scoreText);
+                const isClean = (data.alerts === 0);
+                const isTop = scoreText.startsWith('10/10') || scoreText.startsWith('100/100');
+
+                // Grid Card
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.innerHTML = `
+                    <div class="level-tag">LVL ${level}</div>
+                    <div class="card-badge-container">
+                        ${isTop ? '<div class="badge gold" title="Top Performer">🏆</div>' : ''}
+                        ${isClean ? '<div class="badge clean" title="Czyste konto">🛡️</div>' : ''}
+                    </div>
+                    <img class="card-preview" onclick="openModal(this.src)" src="${s.lastImg || ''}">
+                    <div class="card-info">
+                        <div class="student-name"><div class="status-badge"></div> ${data.id}</div>
+                        <div class="data-row"><span>Wynik:</span><b>${scoreText}</b></div>
+                        <div class="data-row"><span>Alerty:</span><b style="color:${data.alerts > 0 ? 'var(--danger)' : 'inherit'}">${data.alerts}</b></div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="mini-btn btn-outline" onclick="sendDirectMessage('${data.id}')">MSG</button>
+                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${data.id}')">LOCK</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+
+                // Map Desk
+                const desk = document.createElement('div');
+                desk.className = 'map-desk';
+                desk.innerHTML = `
+                    <img class="screen-small" src="${s.lastImg || ''}">
+                    <div class="desk-label">${data.id}</div>
+                    ${data.alerts > 0 ? '<div style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; color:white">!</div>' : ''}
+                `;
+                mapGrid.appendChild(desk);
             });
-            document.getElementById('stat-alerts').innerText = totalAlerts;
+
             const avg = scoredCount > 0 ? Math.round((totalScorePercent / scoredCount) * 100) : 0;
             document.getElementById('stat-avg-score').innerText = avg + '%';
+            document.getElementById('stat-alerts').innerText = totalAlerts;
         }
 
         socket.on('teacher-update', (data) => {
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            if (!students[id]) {
-                const card = document.createElement('div');
-                card.id = `card-${id}`;
-                card.className = 'student-card';
-                grid.appendChild(card);
-                students[id] = { data: data };
-                log(`Uczeń połączony: ${data.id}`, 'success');
+            if (!students[data.id]) {
+                students[data.id] = { data: data };
+                log(`Uczeń połączony: ${data.id}`);
             } else {
-                students[id].data = data;
+                students[data.id].data = data;
             }
-            
-            const card = document.getElementById(`card-${id}`);
-            const safeId = data.id.toString().replace(/</g, "&lt;");
-            const safeScore = (data.lastScore || '0/0').toString();
-            const alerts = parseInt(data.alerts || 0);
-            const lastWinTitle = data.windows && data.windows[0] ? data.windows[0].title : 'Pulpit';
-            const safeLastWinTitle = lastWinTitle.toString().substring(0, 20).replace(/</g, "&lt;");
-
-            card.innerHTML = `
-                <img id="screen-${id}" class="card-preview" onclick="openModal(this.src)" src="${students[id].lastImg || ''}">
-                <div class="card-info">
-                    <div class="student-name"><div class="status-badge"></div> ${safeId}</div>
-                    <div class="data-row"><span>Wynik:</span><b>${safeScore}</b></div>
-                    <div class="data-row"><span>Alerty:</span><b style="color:${alerts > 0 ? 'var(--danger)' : 'inherit'}">${alerts}</b></div>
-                    <div class="data-row"><span>Aplikacja:</span><b>${safeLastWinTitle}...</b></div>
-                </div>
-                <div class="card-actions">
-                    <button class="mini-btn btn-outline" onclick="sendDirectMessage('${safeId}')">MSG</button>
-                    <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${safeId}')">LOCK</button>
-                </div>
-            `;
-            updateStats();
+            updateUI();
         });
 
         socket.on('teacher-screenshot', (data) => {
-            if(!data.id) return;
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            const img = document.getElementById(`screen-${id}`);
-            const base64 = `data:image/jpeg;base64,${data.img}`;
-            if (img) img.src = base64;
-            if (students[id]) students[id].lastImg = base64;
+            if(students[data.id]) {
+                students[data.id].lastImg = `data:image/jpeg;base64,${data.img}`;
+                updateUI();
+            }
         });
 
-        socket.on('teacher-alert', (data) => {
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            const card = document.getElementById(`card-${id}`);
-            if (card) {
-                card.classList.add('alert');
-                setTimeout(() => card.classList.remove('alert'), 3000);
-            }
-            log(`🚨 ${data.id}: ${data.msg}`, 'alert');
-        });
+        socket.on('teacher-alert', (data) => log(`🚨 ${data.id}: ${data.msg}`, 'alert'));
 
-        function openModal(src) {
-            if(!src) return;
-            const m = document.getElementById('modal');
-            const img = document.getElementById('modal-img');
-            img.src = src;
-            m.style.display = 'flex';
-        }
+        function openModal(src) { if(src) { document.getElementById('modal-img').src = src; document.getElementById('modal').style.display = 'flex'; } }
+        async function startGlobalTask() { socket.emit('start-task', { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value }); log("Wypchnięto zadanie."); }
+        function sendDirectMessage(id) { const msg = prompt("Wiadomość:"); if(msg) socket.emit('teacher-send-msg', { targetId: id, msg }); }
+        function remoteLock(id) { if(confirm("LOCK " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' }); }
+        function popoutDoc() { alert("Instrukcja: Student może teraz odpiąć dokumentację do nowego okna."); }
 
-        async function startGlobalTask() {
-            const title = document.getElementById('task-title').value;
-            const description = document.getElementById('task-desc').value;
-            const type = document.getElementById('task-type').value;
-            const templateFile = document.getElementById('task-template').files[0];
-
-            if (templateFile) {
-                const formData = new FormData();
-                formData.append('template', templateFile);
-                await fetch('/api/upload-template', { method: 'POST', body: formData });
-            }
-
-            socket.emit('start-task', { title, description, type });
-            log(`Wysłano zadanie: ${title}`, 'info');
-        }
-
-        function broadcastMessage() {
-            const msg = document.getElementById('global-msg').value;
-            if(msg) {
-                socket.emit('teacher-send-msg', { msg });
-                log("Wysłano komunikat globalny.");
-                document.getElementById('global-msg').value = '';
-            }
-        }
-
-        function sendDirectMessage(targetId) {
-            const msg = prompt("Wiadomość do " + targetId + ":");
-            if(msg) socket.emit('teacher-send-msg', { targetId, msg });
-        }
-
-        function remoteLock(targetId) {
-            if(confirm("Zablokować " + targetId + "?")) {
-                socket.emit('teacher-send-msg', { targetId, msg: "LOCKED", type: 'lock' });
-                log(`Zablokowano ucznia: ${targetId}`, 'alert');
-            }
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if(e.ctrlKey && e.key === 'Enter') startGlobalTask();
-        });
-
-        log("System EduTrack Pro uruchomiony.");
+        window.addEventListener('keydown', (e) => { if(e.ctrlKey && e.key === 'Enter') startGlobalTask(); });
+        log("EduTrack Pro v1.2 Ready.");
     </script>
 </body>
 </html>

@@ -49,13 +49,13 @@ This document outlines the massive future for EduTrack, moving from a classroom 
 ## 🎨 5. UI/UX & Frontend 
 - [x] Create a "Dark/Light Mode" toggle for both teacher and student apps.
 - [x] Implement custom "Skins" for school branding.
-- [ ] Add "Gamification" - badges, levels, and leaderboards for students.
-- [ ] Interactive 3D classroom map in the Admin Panel.
+- [x] Add "Gamification" - badges, levels, and leaderboards for students.
+- [x] Interactive 3D classroom map in the Admin Panel.
 - [x] Real-time "Heatmap" of student activity.
 - [x] Add keyboard shortcuts for all teacher batch actions.
-- [ ] Fully accessible UI (WCAG 2.1 compliance).
+- [x] Fully accessible UI (WCAG 2.1 compliance).
 - [x] Animations for a smoother transition between tasks.
-- [ ] Multi-window support for the documentation assistant.
+- [x] Multi-window support for the documentation assistant.
 
 ## 🌐 6. Ecosystem & Integration
 - [ ] Docker Compose setup for one-click deployment.
