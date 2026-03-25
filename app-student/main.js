@@ -8,26 +8,60 @@ const path = require('path');
 
 let socket;
 let messageWindow;
+let mainWindow;
 const bonjour = new Bonjour();
 
-// 🛡️ ANTI-CLOSING: Prevent app from quitting unexpectedly
+/** @security Prevent unexpected quit during exam */
 let isQuitting = false;
 
 app.on('before-quit', (e) => {
     if (!isQuitting) {
         e.preventDefault();
-        console.log("[SECURITY] Blocked unexpected quit attempt.");
     }
 });
+
+/** @ui Create main student exam window */
+function createMainWindow() {
+    mainWindow = new BrowserWindow({
+        width: 1200, height: 800,
+        title: "EduTrack Student Terminal",
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
+        }
+    });
+
+    mainWindow.loadFile(path.join(__dirname, 'ui/index.html'));
+
+    mainWindow.on('blur', () => {
+        if (socket && socket.connected) {
+            socket.emit('security-alert', {
+                hostname: os.hostname(),
+                msg: "Uczeń opuścił okno egzaminacyjne (Alt-Tab)!",
+                type: 'focus_loss'
+            });
+        }
+    });
+
+    mainWindow.on('close', (e) => {
+        if (!isQuitting) {
+            e.preventDefault();
+            mainWindow.webContents.send('security-alert', { msg: "Zamykanie aplikacji podczas egzaminu jest zabronione!" });
+        }
+    });
+}
 
 function createMessageWindow() {
     messageWindow = new BrowserWindow({
         width: 500, height: 300,
         show: false, frame: false, alwaysOnTop: true, transparent: true,
-        webPreferences: { nodeIntegration: true, contextIsolation: false }
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
     });
 
-    // 🛡️ Prevent destruction on close
     messageWindow.on('close', (e) => {
         if (!isQuitting) {
             e.preventDefault();
@@ -41,7 +75,8 @@ function createMessageWindow() {
             <p id="msg" style="font-size:1.2rem;"></p>
             <button onclick="require('electron').ipcRenderer.send('hide-msg')" style="background:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">ZAMKNIJ</button>
             <script>
-                require('electron').ipcRenderer.on('set-msg', (e, m) => { document.getElementById('msg').innerText = m; });
+                const { ipcRenderer } = require('electron');
+                ipcRenderer.on('set-msg', (e, m) => { document.getElementById('msg').innerText = m; });
             </script>
         </body>
     `);
@@ -52,6 +87,7 @@ ipcMain.on('hide-msg', () => {
 });
 
 app.on('ready', () => {
+    createMainWindow();
     createMessageWindow();
     startDiscovery();
 });
@@ -59,10 +95,13 @@ app.on('ready', () => {
 function startDiscovery() {
     bonjour.find({ type: 'http' }, (service) => {
         if (service.name.includes('EduTrack') && !socket) {
-            socket = io(`http://${service.referer.address}:${service.port}`);
+            const serverUrl = `http://${service.referer.address}:${service.port}`;
+            socket = io(serverUrl);
             socket.on('connect', () => {
                 console.log("[AGENT] Connected to Server!");
-                // 🚀 Send initial report immediately
+                if (mainWindow) {
+                    mainWindow.webContents.send('server-found', { address: serverUrl });
+                }
                 exec('tasklist /fo csv /nh', (err, stdout) => {
                     const processes = stdout.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
                     socket.emit('agent-report', { hostname: os.hostname(), processes });
@@ -71,32 +110,63 @@ function startDiscovery() {
                 runSoftwareAudit();
             });
             socket.on('teacher-message', (data) => {
-                messageWindow.webContents.send('set-msg', data.msg);
-                messageWindow.show();
+                if (data.type === 'lock') {
+                    if (mainWindow) mainWindow.webContents.send('security-alert', { msg: data.msg });
+                } else {
+                    messageWindow.webContents.send('set-msg', data.msg);
+                    messageWindow.show();
+                }
             });
             socket.on('task-started', async (data) => {
-                console.log(`[TASK] Auto-starting task: ${data.title}`);
+                if (mainWindow) {
+                    mainWindow.webContents.send('task-started', data);
+                    mainWindow.show();
+                    mainWindow.maximize();
+                    mainWindow.setAlwaysOnTop(true);
+                    setTimeout(() => mainWindow.setAlwaysOnTop(false), 5000);
+                }
                 if (data.type === 'offline') {
-                    // Try to open a local sample file if it exists, or just trigger Excel
-                    const testFile = 'C:\\Users\\Jakub Lis\\Desktop\\EduTrack\\server\\test-data\\student.xlsx';
-                    shell.openPath(testFile);
+                    const localTaskFile = path.join(app.getPath('desktop'), 'zadanie.xlsx');
+                    if (require('fs').existsSync(localTaskFile)) {
+                        shell.openPath(localTaskFile);
+                    }
                 }
             });
         }
     });
 }
 
+/** @monitor Background process & window tracking */
 function startMonitoring() {
-    // 1. Process Monitoring
     setInterval(() => {
-        exec('tasklist /fo csv /nh', (err, stdout) => {
-            if (err || !socket.connected) return;
-            const processes = stdout.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
-            socket.emit('agent-report', { hostname: os.hostname(), processes });
+        if (!socket || !socket.connected) return;
+
+        const cmd = os.platform() === 'win32'
+            ? 'powershell "Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object ProcessName, MainWindowTitle | ConvertTo-Json"'
+            : 'ps -e';
+
+        exec(cmd, (err, stdout) => {
+            if (err) return;
+
+            let windowData = [];
+            try {
+                if (os.platform() === 'win32') {
+                    const data = JSON.parse(stdout);
+                    windowData = Array.isArray(data) ? data : [data];
+                }
+            } catch (e) {}
+
+            exec('tasklist /fo csv /nh', (err2, stdout2) => {
+                const processes = stdout2.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
+                socket.emit('agent-report', {
+                    hostname: os.hostname(),
+                    processes,
+                    windows: windowData.map(w => ({ app: w.ProcessName, title: w.MainWindowTitle }))
+                });
+            });
         });
     }, 5000);
 
-    // 2. Screenshot Streaming
     setInterval(async () => {
         if (!socket.connected) return;
         try {

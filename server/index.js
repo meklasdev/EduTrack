@@ -9,7 +9,7 @@ const ExcelLogicChecker = require('./src/logic/excel-checker');
 
 const app = express();
 const httpServer = http.createServer(app);
-const io = new Server(httpServer, { cors: { origin: '*', maxHttpBufferSize: 1e7 } }); // Large buffer for screenshots
+const io = new Server(httpServer, { cors: { origin: '*', maxHttpBufferSize: 1e7 } });
 const bonjour = new Bonjour();
 const fs = require('fs-extra');
 const excelChecker = new ExcelLogicChecker();
@@ -18,7 +18,12 @@ const PORT = 8080;
 const DB_PATH = path.join(__dirname, 'students_db.json');
 const ADMIN_PASS = 'edutrack2025';
 
-let currentTask = { title: "Czwartkowe Lab: Excel", description: "Wprowadź dane i użyj formuły SUM.", type: "none" };
+let currentTask = {
+    title: "Egzamin: Arkusz Kalkulacyjny",
+    description: "Zadanie 1: Oblicz sumę w A3.\nZadanie 2: Oblicz średnią w B5.",
+    type: "none",
+    startTime: Date.now()
+};
 let studentsStore = {};
 
 // Load DB on start
@@ -31,10 +36,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(fileUpload());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔐 Admin Password Guard
+/** @guard Admin Password Check */
 app.use('/admin', (req, res, next) => {
     const auth = req.query.pass || req.headers['x-admin-pass'];
-    if (auth === ADMIN_PASS || req.hostname === 'localhost') return next(); // Allow localhost for easy dev
+    if (auth === ADMIN_PASS || req.hostname === 'localhost') return next();
     res.status(403).send(`
         <body style="background:#05070a; color:white; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
             <h1>403 Forbidden</h1>
@@ -45,6 +50,13 @@ app.use('/admin', (req, res, next) => {
 
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
 app.get('/api/current-task', (req, res) => res.json(currentTask));
+
+app.post('/api/upload-template', async (req, res) => {
+    if (!req.files || !req.files.template) return res.status(400).send('No template.');
+    const templatePath = path.join(__dirname, 'test-data/template.xlsx');
+    await req.files.template.mv(templatePath);
+    res.send('Template updated.');
+});
 
 /**
  * 🛠️ Helper: Save DB
@@ -64,6 +76,8 @@ async function luckysheetToExcel(jsonStr) {
                 const excelCell = worksheet.getCell(cell.r + 1, cell.c + 1);
                 if (cell.v && cell.v.f) excelCell.value = { formula: cell.v.f.substring(1), result: cell.v.v };
                 else excelCell.value = cell.v ? (cell.v.v || cell.v) : '';
+
+                if (cell.v && cell.v.bl) excelCell.font = { bold: true };
             });
         }
     });
@@ -98,10 +112,40 @@ io.on('connection', (socket) => {
     socket.on('agent-report', (data) => {
         const hostname = data.hostname || "Unknown";
         if (!studentsStore[hostname]) {
-            studentsStore[hostname] = { hostname, lastSeen: new Date(), processes: [], alerts: 0, lastScore: '0/0' };
+            studentsStore[hostname] = {
+                hostname,
+                lastSeen: new Date(),
+                processes: [],
+                windows: [],
+                browsingHistory: [],
+                alerts: 0,
+                lastScore: '0/0'
+            };
         }
         studentsStore[hostname].processes = data.processes || [];
+        studentsStore[hostname].windows = data.windows || [];
         studentsStore[hostname].lastSeen = new Date();
+
+        /** @security AI & Communication Detection */
+        const banned = [
+            'discord', 'whatsapp', 'spotify', 'messenger', 'telegram', 'slack',
+            'chatgpt', 'openai', 'claude', 'gemini', 'deepseek', 'ollama', 'copilot',
+            'youtube', 'facebook', 'instagram', 'tiktok', 'reddit',
+            'chrome', 'edge', 'firefox', 'opera'
+        ];
+
+        const activeBanned = (data.windows || []).filter(w => {
+            const app = w.app.toLowerCase();
+            const title = w.title.toLowerCase();
+            return banned.some(b => app.includes(b) || title.includes(b));
+        });
+
+        if (activeBanned.length > 0) {
+            studentsStore[hostname].alerts++;
+            const msg = `WYKRYTO ZABRONIONĄ AKTYWNOŚĆ (AI/COMM): ${activeBanned[0].title}`;
+            io.emit('teacher-alert', { id: hostname, msg, type: 'security' });
+        }
+
         saveDB();
         io.emit('teacher-update', { id: hostname, ...data });
     });
@@ -123,12 +167,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-task', (data) => {
-        currentTask = { ...data };
+        currentTask = { ...data, startTime: Date.now() };
         io.emit('task-started', currentTask);
     });
 
     socket.on('teacher-send-msg', (data) => {
-        io.emit('teacher-message', data); // Broadcast for simplicity in this version
+        io.emit('teacher-message', data);
     });
 });
 
