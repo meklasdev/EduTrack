@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.svg" width="150" alt="EduTrack Logo">
+</p>
+
 # EduTrack Pro v1.0
 
 Kompleksowy system zarządzania salą informatyczną i automatycznego oceniania zadań.
