@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-
 contextBridge.exposeInMainWorld('electronAPI', {
     onServerFound: (callback) => ipcRenderer.on('server-found', (_event, value) => callback(value)),
     onSecurityAlert: (callback) => ipcRenderer.on('security-alert', (_event, value) => callback(value)),

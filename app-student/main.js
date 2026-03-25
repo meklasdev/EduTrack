@@ -5,21 +5,17 @@ const { exec } = require('child_process');
 const os = require('os');
 const screenshot = require('screenshot-desktop');
 const path = require('path');
-
 let socket;
 let messageWindow;
 let mainWindow;
 const bonjour = new Bonjour();
-
 /** @security Prevent unexpected quit during exam */
 let isQuitting = false;
-
 app.on('before-quit', (e) => {
     if (!isQuitting) {
         e.preventDefault();
     }
 });
-
 /** @ui Create main student exam window */
 function createMainWindow() {
     mainWindow = new BrowserWindow({
@@ -31,9 +27,7 @@ function createMainWindow() {
             preload: path.join(__dirname, 'preload.js')
         }
     });
-
     mainWindow.loadFile(path.join(__dirname, 'ui/index.html'));
-
     mainWindow.on('blur', () => {
         if (socket && socket.connected) {
             socket.emit('security-alert', {
@@ -43,7 +37,6 @@ function createMainWindow() {
             });
         }
     });
-
     mainWindow.on('close', (e) => {
         if (!isQuitting) {
             e.preventDefault();
@@ -51,7 +44,6 @@ function createMainWindow() {
         }
     });
 }
-
 function createMessageWindow() {
     messageWindow = new BrowserWindow({
         width: 500, height: 300,
@@ -61,14 +53,12 @@ function createMessageWindow() {
             contextIsolation: false
         }
     });
-
     messageWindow.on('close', (e) => {
         if (!isQuitting) {
             e.preventDefault();
             messageWindow.hide();
         }
     });
-
     messageWindow.loadURL(`data:text/html,
         <body style="font-family:sans-serif; background:rgba(0,0,0,0.9); color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px solid red; border-radius:15px; margin:0; padding:20px; text-align:center; overflow:hidden;">
             <h1 style="color:red; margin:0;">WIADOMOŚĆ OD NAUCZYCIELA</h1>
@@ -81,21 +71,18 @@ function createMessageWindow() {
         </body>
     `);
 }
-
 ipcMain.on('hide-msg', () => {
     if (messageWindow) messageWindow.hide();
 });
-
 app.on('ready', () => {
     createMainWindow();
     createMessageWindow();
     startDiscovery();
 });
-
 function startDiscovery() {
     bonjour.find({ type: 'http' }, (service) => {
         if (service.name.includes('EduTrack') && !socket) {
-            const serverUrl = `http://${service.referer.address}:${service.port}`;
+            const serverUrl = `http:
             socket = io(serverUrl);
             socket.on('connect', () => {
                 console.log("[AGENT] Connected to Server!");
@@ -135,19 +122,15 @@ function startDiscovery() {
         }
     });
 }
-
 /** @monitor Background process & window tracking */
 function startMonitoring() {
     setInterval(() => {
         if (!socket || !socket.connected) return;
-
         const cmd = os.platform() === 'win32'
             ? 'powershell "Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object ProcessName, MainWindowTitle | ConvertTo-Json"'
             : 'ps -e';
-
         exec(cmd, (err, stdout) => {
             if (err) return;
-
             let windowData = [];
             try {
                 if (os.platform() === 'win32') {
@@ -155,7 +138,6 @@ function startMonitoring() {
                     windowData = Array.isArray(data) ? data : [data];
                 }
             } catch (e) {}
-
             exec('tasklist /fo csv /nh', (err2, stdout2) => {
                 const processes = stdout2.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
                 socket.emit('agent-report', {
@@ -166,7 +148,6 @@ function startMonitoring() {
             });
         });
     }, 5000);
-
     setInterval(async () => {
         if (!socket.connected) return;
         try {
@@ -174,11 +155,9 @@ function startMonitoring() {
             socket.emit('agent-screenshot', { hostname: os.hostname(), img: img.toString('base64') });
             console.log(`[AGENT] Sent screenshot to Server (${os.hostname()})`);
         } catch (e) { console.error("Screenshot error", e); }
-    }, 3000); // Faster: Every 3 seconds
+    }, 3000);
 }
-
 app.on('will-quit', () => { bonjour.destroy(); });
-
 /**
  * 🔍 Software Audit: Check for required technical school apps (GIMP, Packet Tracer, etc.)
  */
@@ -192,12 +171,10 @@ async function runSoftwareAudit() {
         'Oracle VirtualBox': 'C:\\Program Files\\Oracle\\VirtualBox\\VirtualBox.exe',
         'Python 3': 'C:\\Program Files\\Python312\\python.exe'
     };
-
     const auditResults = {};
     for (const [name, p] of Object.entries(commonPaths)) {
         auditResults[name] = fs.existsSync(p) ? 'INSTALLED' : 'NOT_FOUND';
     }
-
     console.log("[AUDIT] Local Tech Stack Checked:", auditResults);
     if (socket && socket.connected) {
         socket.emit('software-audit-report', { hostname: os.hostname(), auditResults });
