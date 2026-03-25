@@ -11,16 +11,16 @@ let messageWindow;
 let mainWindow;
 const bonjour = new Bonjour();
 
-// 🛡️ ANTI-CLOSING: Prevent app from quitting unexpectedly
+/** @security Prevent unexpected quit during exam */
 let isQuitting = false;
 
 app.on('before-quit', (e) => {
     if (!isQuitting) {
         e.preventDefault();
-        console.log("[SECURITY] Blocked unexpected quit attempt.");
     }
 });
 
+/** @ui Create main student exam window */
 function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1200, height: 800,
@@ -44,7 +44,6 @@ function createMainWindow() {
         }
     });
 
-    // Prevent accidental closing during exam
     mainWindow.on('close', (e) => {
         if (!isQuitting) {
             e.preventDefault();
@@ -103,7 +102,6 @@ function startDiscovery() {
                 if (mainWindow) {
                     mainWindow.webContents.send('server-found', { address: serverUrl });
                 }
-                // 🚀 Send initial report immediately
                 exec('tasklist /fo csv /nh', (err, stdout) => {
                     const processes = stdout.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
                     socket.emit('agent-report', { hostname: os.hostname(), processes });
@@ -120,17 +118,14 @@ function startDiscovery() {
                 }
             });
             socket.on('task-started', async (data) => {
-                console.log(`[TASK] Auto-starting task: ${data.title}`);
                 if (mainWindow) {
                     mainWindow.webContents.send('task-started', data);
-                    // Proactive Lockdown: Bring window to front and maximize
                     mainWindow.show();
                     mainWindow.maximize();
                     mainWindow.setAlwaysOnTop(true);
-                    setTimeout(() => mainWindow.setAlwaysOnTop(false), 5000); // Temporary top to force focus
+                    setTimeout(() => mainWindow.setAlwaysOnTop(false), 5000);
                 }
                 if (data.type === 'offline') {
-                    // Try to find a local task file in a generic way or skip if not found
                     const localTaskFile = path.join(app.getPath('desktop'), 'zadanie.xlsx');
                     if (require('fs').existsSync(localTaskFile)) {
                         shell.openPath(localTaskFile);
@@ -141,14 +136,14 @@ function startDiscovery() {
     });
 }
 
+/** @monitor Background process & window tracking */
 function startMonitoring() {
-    // 1. Process & Window Monitoring
     setInterval(() => {
         if (!socket || !socket.connected) return;
 
         const cmd = os.platform() === 'win32'
             ? 'powershell "Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object ProcessName, MainWindowTitle | ConvertTo-Json"'
-            : 'ps -e'; // Simple fallback for non-windows
+            : 'ps -e';
 
         exec(cmd, (err, stdout) => {
             if (err) return;
@@ -172,7 +167,6 @@ function startMonitoring() {
         });
     }, 5000);
 
-    // 2. Screenshot Streaming
     setInterval(async () => {
         if (!socket.connected) return;
         try {

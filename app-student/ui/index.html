@@ -72,30 +72,32 @@
         main { flex: 1; display: flex; flex-direction: column; }
 
         header {
-            height: 60px; padding: 0 30px;
+            height: 50px; padding: 0 25px;
             display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid #30363d;
+            background: #0d1117; border-bottom: 1px solid #30363d;
+            font-size: 0.85rem; letter-spacing: 0.5px;
         }
 
         .status-dot {
-            width: 10px; height: 10px; border-radius: 50%; display: inline-block;
-            background: var(--danger-color); margin-right: 10px;
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+            background: var(--danger-color); margin-right: 8px;
         }
-        .status-connected { background: #3fb950; box-shadow: 0 0 10px #3fb950; }
+        .status-connected { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
 
         /* 📄 Content Area */
         .workspace {
-            flex: 1; display: grid; grid-template-columns: 1fr 350px;
-            gap: 15px; padding: 20px; overflow-y: auto;
+            flex: 1; display: grid; grid-template-columns: 1fr 320px;
+            gap: 0; padding: 0; overflow: hidden;
         }
 
         .editor-container {
-            background: #0d1117; border-radius: 12px; border: 1px solid #30363d;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+            background: #fff; display: flex; flex-direction: column;
+            border-right: 1px solid #30363d;
         }
         .editor-header {
-            padding: 10px 20px; border-bottom: 1px solid #30363d;
+            padding: 8px 15px; background: #f6f8fa; border-bottom: 1px solid #d0d7de;
             display: flex; align-items: center; justify-content: space-between;
+            color: #24292f; font-size: 0.75rem; font-weight: 600;
         }
         .editor-view {
             flex: 1; font-family: 'JetBrains Mono', monospace;
@@ -105,14 +107,16 @@
         }
 
         .task-sidebar {
-            background: var(--panel-color); border-radius: 12px; padding: 20px;
-            border: 1px solid #30363d; display: flex; flex-direction: column;
+            background: #0d1117; padding: 20px;
+            display: flex; flex-direction: column;
+            border-left: 1px solid #30363d;
         }
 
         .btn-submit {
             background: #238636; color: #fff; border: none; padding: 12px 20px;
-            border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%;
-            margin-top: auto; transition: 0.2s;
+            border-radius: 4px; cursor: pointer; font-weight: 700; width: 100%;
+            margin-top: auto; transition: 0.2s; text-transform: uppercase;
+            font-size: 0.8rem; letter-spacing: 1px;
         }
         .btn-submit:hover { background: #2ea043; transform: translateY(-2px); }
 

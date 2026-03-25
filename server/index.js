@@ -9,7 +9,7 @@ const ExcelLogicChecker = require('./src/logic/excel-checker');
 
 const app = express();
 const httpServer = http.createServer(app);
-const io = new Server(httpServer, { cors: { origin: '*', maxHttpBufferSize: 1e7 } }); // Large buffer for screenshots
+const io = new Server(httpServer, { cors: { origin: '*', maxHttpBufferSize: 1e7 } });
 const bonjour = new Bonjour();
 const fs = require('fs-extra');
 const excelChecker = new ExcelLogicChecker();
@@ -18,7 +18,12 @@ const PORT = 8080;
 const DB_PATH = path.join(__dirname, 'students_db.json');
 const ADMIN_PASS = 'edutrack2025';
 
-let currentTask = { title: "Czwartkowe Lab: Excel", description: "Wprowadź dane i użyj formuły SUM.", type: "none" };
+let currentTask = {
+    title: "Egzamin: Arkusz Kalkulacyjny",
+    description: "Zadanie 1: Oblicz sumę w A3.\nZadanie 2: Oblicz średnią w B5.",
+    type: "none",
+    startTime: Date.now()
+};
 let studentsStore = {};
 
 // Load DB on start
@@ -31,10 +36,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(fileUpload());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔐 Admin Password Guard
+/** @guard Admin Password Check */
 app.use('/admin', (req, res, next) => {
     const auth = req.query.pass || req.headers['x-admin-pass'];
-    if (auth === ADMIN_PASS || req.hostname === 'localhost') return next(); // Allow localhost for easy dev
+    if (auth === ADMIN_PASS || req.hostname === 'localhost') return next();
     res.status(403).send(`
         <body style="background:#05070a; color:white; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
             <h1>403 Forbidden</h1>
@@ -121,12 +126,12 @@ io.on('connection', (socket) => {
         studentsStore[hostname].windows = data.windows || [];
         studentsStore[hostname].lastSeen = new Date();
 
-        // 🚨 ENHANCED ANTI-CHEAT & AI DETECTION
+        /** @security AI & Communication Detection */
         const banned = [
-            'discord', 'whatsapp', 'spotify', 'messenger', 'telegram', 'slack', // Communicators
-            'chatgpt', 'openai', 'claude', 'gemini', 'deepseek', 'ollama', 'copilot', // AI Tools
-            'youtube', 'facebook', 'instagram', 'tiktok', 'reddit', // Socials
-            'chrome', 'edge', 'firefox', 'opera' // Browsers (if they should be blocked during exam)
+            'discord', 'whatsapp', 'spotify', 'messenger', 'telegram', 'slack',
+            'chatgpt', 'openai', 'claude', 'gemini', 'deepseek', 'ollama', 'copilot',
+            'youtube', 'facebook', 'instagram', 'tiktok', 'reddit',
+            'chrome', 'edge', 'firefox', 'opera'
         ];
 
         const activeBanned = (data.windows || []).filter(w => {
@@ -162,12 +167,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-task', (data) => {
-        currentTask = { ...data };
+        currentTask = { ...data, startTime: Date.now() };
         io.emit('task-started', currentTask);
     });
 
     socket.on('teacher-send-msg', (data) => {
-        // Simple direct relay logic (could be improved by storing socket IDs)
         io.emit('teacher-message', data);
     });
 });
