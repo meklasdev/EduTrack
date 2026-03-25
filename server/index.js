@@ -46,6 +46,13 @@ app.use('/admin', (req, res, next) => {
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
 app.get('/api/current-task', (req, res) => res.json(currentTask));
 
+app.post('/api/upload-template', async (req, res) => {
+    if (!req.files || !req.files.template) return res.status(400).send('No template.');
+    const templatePath = path.join(__dirname, 'test-data/template.xlsx');
+    await req.files.template.mv(templatePath);
+    res.send('Template updated.');
+});
+
 /**
  * 🛠️ Helper: Save DB
  */
@@ -114,12 +121,24 @@ io.on('connection', (socket) => {
         studentsStore[hostname].windows = data.windows || [];
         studentsStore[hostname].lastSeen = new Date();
 
-        // Anti-cheat simple check
-        const banned = ['discord', 'whatsapp', 'spotify', 'chrome', 'edge'];
-        const activeBanned = (data.windows || []).filter(w => banned.some(b => w.app.toLowerCase().includes(b)));
+        // 🚨 ENHANCED ANTI-CHEAT & AI DETECTION
+        const banned = [
+            'discord', 'whatsapp', 'spotify', 'messenger', 'telegram', 'slack', // Communicators
+            'chatgpt', 'openai', 'claude', 'gemini', 'deepseek', 'ollama', 'copilot', // AI Tools
+            'youtube', 'facebook', 'instagram', 'tiktok', 'reddit', // Socials
+            'chrome', 'edge', 'firefox', 'opera' // Browsers (if they should be blocked during exam)
+        ];
+
+        const activeBanned = (data.windows || []).filter(w => {
+            const app = w.app.toLowerCase();
+            const title = w.title.toLowerCase();
+            return banned.some(b => app.includes(b) || title.includes(b));
+        });
+
         if (activeBanned.length > 0) {
             studentsStore[hostname].alerts++;
-            io.emit('teacher-alert', { id: hostname, msg: `Wykryto: ${activeBanned[0].title}` });
+            const msg = `WYKRYTO ZABRONIONĄ AKTYWNOŚĆ (AI/COMM): ${activeBanned[0].title}`;
+            io.emit('teacher-alert', { id: hostname, msg, type: 'security' });
         }
 
         saveDB();
@@ -148,7 +167,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('teacher-send-msg', (data) => {
-        io.emit('teacher-message', data); // Broadcast for simplicity in this version
+        // Simple direct relay logic (could be improved by storing socket IDs)
+        io.emit('teacher-message', data);
     });
 });
 

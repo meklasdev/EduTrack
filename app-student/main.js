@@ -34,6 +34,16 @@ function createMainWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'ui/index.html'));
 
+    mainWindow.on('blur', () => {
+        if (socket && socket.connected) {
+            socket.emit('security-alert', {
+                hostname: os.hostname(),
+                msg: "Uczeń opuścił okno egzaminacyjne (Alt-Tab)!",
+                type: 'focus_loss'
+            });
+        }
+    });
+
     // Prevent accidental closing during exam
     mainWindow.on('close', (e) => {
         if (!isQuitting) {
@@ -113,6 +123,11 @@ function startDiscovery() {
                 console.log(`[TASK] Auto-starting task: ${data.title}`);
                 if (mainWindow) {
                     mainWindow.webContents.send('task-started', data);
+                    // Proactive Lockdown: Bring window to front and maximize
+                    mainWindow.show();
+                    mainWindow.maximize();
+                    mainWindow.setAlwaysOnTop(true);
+                    setTimeout(() => mainWindow.setAlwaysOnTop(false), 5000); // Temporary top to force focus
                 }
                 if (data.type === 'offline') {
                     // Try to find a local task file in a generic way or skip if not found

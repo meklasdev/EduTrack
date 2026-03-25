@@ -53,9 +53,13 @@
         <div class="control-group">
             <label>Zarządzanie Lekcją</label>
             <input id="task-title" type="text" placeholder="Tytuł zadania...">
-            <textarea id="task-desc" placeholder="Instrukcje..." style="width:100%; height:80px; background:#05070a; color:white; border:1px solid #30363d; border-radius:6px; padding:10px; margin-bottom:15px; font-family:inherit;"></textarea>
+            <textarea id="task-desc" placeholder="Instrukcje / Wskazówki..." style="width:100%; height:80px; background:#05070a; color:white; border:1px solid #30363d; border-radius:6px; padding:10px; margin-bottom:15px; font-family:inherit;"></textarea>
+
+            <label>Wzór (.xlsx) do oceny</label>
+            <input type="file" id="task-template" accept=".xlsx" style="font-size:0.7rem;">
+
             <select id="task-type">
-                <option value="online">Tryb Online (Luckysheet)</option>
+                <option value="online">Tryb Online (Wbudowany arkusz)</option>
                 <option value="offline">Tryb Lokalny (MS Excel)</option>
             </select>
             <button class="btn btn-primary" onclick="startGlobalTask()">Wypchnij Zadanie</button>
@@ -108,7 +112,7 @@
                 <div class="data-row"><span>Wynik Excel:</span><b>${data.lastScore || '0/0'}</b></div>
                 <div class="data-row"><span>Alerty:</span><b style="color:var(--danger)">${data.alerts || 0}</b></div>
                 <div class="data-row"><span>Okna:</span><b>${data.windows ? data.windows.length : 0} aktywnych</b></div>
-                <div class="data-row"><span>Ostatnie okno:</span><b>${data.windows && data.windows[0] ? data.windows[0].title.substring(0,25) : 'Brak'}</b></div>
+                <div class="data-row"><span>Ostatnie okno:</span><b title="${data.windows && data.windows[0] ? data.windows[0].title : ''}">${data.windows && data.windows[0] ? data.windows[0].title.substring(0,25) + '...' : 'Brak'}</b></div>
                 <div id="audit-${id}" style="font-size:0.6rem; color:#8b949e; margin-top:10px; border-top:1px solid #30363d; padding-top:10px;">
                     Czekam na audyt techniczny...
                 </div>
@@ -155,8 +159,13 @@
         socket.on('teacher-alert', (data) => {
             const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
             const card = document.getElementById(`card-${id}`);
-            if (card) card.classList.add('alert');
-            log(`SECURITY ALERT: ${data.id} - ${data.msg}`);
+            if (card) {
+                card.classList.add('alert');
+                setTimeout(() => card.classList.remove('alert'), 5000);
+            }
+            const color = data.type === 'focus_loss' ? '#ffcc00' : 'var(--danger)';
+            const time = new Date().toLocaleTimeString();
+            consoleEl.innerHTML = `<div style="color:${color}">[${time}] 🚨 ALERT (${data.id}): ${data.msg}</div>${consoleEl.innerHTML}`;
         });
 
         function openModal(src) {
@@ -166,10 +175,19 @@
             m.style.display = 'flex';
         }
 
-        function startGlobalTask() {
+        async function startGlobalTask() {
             const title = document.getElementById('task-title').value;
             const description = document.getElementById('task-desc').value;
             const type = document.getElementById('task-type').value;
+            const templateFile = document.getElementById('task-template').files[0];
+
+            if (templateFile) {
+                const formData = new FormData();
+                formData.append('template', templateFile);
+                await fetch('/api/upload-template', { method: 'POST', body: formData });
+                log("Template uploaded successfully.");
+            }
+
             socket.emit('start-task', { title, description, type });
             log(`Global task started: ${title}`);
         }

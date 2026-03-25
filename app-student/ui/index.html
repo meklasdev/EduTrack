@@ -223,21 +223,31 @@
         let jexcelInstance;
 
         const EXCEL_DOCS = [
-            { t: "SUMA(zakres)", d: "Dodaje wszystkie liczby w zakresie komórek.", e: "=SUMA(A1:A10)" },
-            { t: "ŚREDNIA(zakres)", d: "Zwraca średnią arytmetyczną argumentów.", e: "=ŚREDNIA(B1:B5)" },
-            { t: "JEŻELI(test; prawda; fałsz)", d: "Sprawdza czy warunek jest spełniony.", e: "=JEŻELI(C1>10; 'OK'; 'BŁĄD')" },
-            { t: "WYSZUKAJ.PIONOWO(szukana; tabela; nr_kol; [zakres])", d: "Szuka wartości w pierwszej kolumnie tabeli.", e: "=WYSZUKAJ.PIONOWO(D1; A1:B10; 2; 0)" },
-            { t: "LICZ.JEŻELI(zakres; kryterium)", d: "Zlicza komórki spełniające warunek.", e: "=LICZ.JEŻELI(A1:A20; '>50')" }
+            { c: "Excel", t: "SUMA(zakres)", d: "Dodaje wszystkie liczby w zakresie komórek.", e: "=SUMA(A1:A10)" },
+            { c: "Excel", t: "ŚREDNIA(zakres)", d: "Zwraca średnią arytmetyczną argumentów.", e: "=ŚREDNIA(B1:B5)" },
+            { c: "Excel", t: "JEŻELI(test; prawda; fałsz)", d: "Sprawdza czy warunek jest spełniony.", e: "=JEŻELI(C1>10; 'OK'; 'BŁĄD')" },
+            { c: "Excel", t: "WYSZUKAJ.PIONOWO(szukana; tabela; nr_kol; [zakres])", d: "Szuka wartości w pierwszej kolumnie tabeli.", e: "=WYSZUKAJ.PIONOWO(D1; A1:B10; 2; 0)" },
+            { c: "Excel", t: "LICZ.JEŻELI(zakres; kryterium)", d: "Zlicza komórki spełniające warunek.", e: "=LICZ.JEŻELI(A1:A20; '>50')" },
+            { c: "INF.02", t: "Adresacja IPv4", d: "Maska /24 to 255.255.255.0 (256 adresów).", e: "Brama domyślna: zazwyczaj .1 lub .254" },
+            { c: "INF.02", t: "Polecenie PING", d: "Sprawdza łączność z hostem docelowym.", e: "ping 127.0.0.1" },
+            { c: "INF.03", t: "HTML: Tabela", d: "Struktura tabeli: table, tr (wiersz), td (komórka).", e: "<table><tr><td>Dane</td></tr></table>" },
+            { c: "INF.03", t: "SQL: SELECT", d: "Wybieranie danych z bazy.", e: "SELECT * FROM uczniowie WHERE klasa='1A';" },
+            { c: "C++", t: "cout <<", d: "Wypisywanie danych na ekran.", e: "std::cout << 'Hello World';" }
         ];
 
         function searchDocs(query) {
             const content = document.getElementById('docs-content');
-            const filtered = EXCEL_DOCS.filter(d => d.t.toLowerCase().includes(query.toLowerCase()) || d.d.toLowerCase().includes(query.toLowerCase()));
+            const filtered = EXCEL_DOCS.filter(d =>
+                d.t.toLowerCase().includes(query.toLowerCase()) ||
+                d.d.toLowerCase().includes(query.toLowerCase()) ||
+                d.c.toLowerCase().includes(query.toLowerCase())
+            );
             content.innerHTML = filtered.map(d => `
                 <div class="doc-item">
+                    <small style="color:#8b949e; text-transform:uppercase; font-size:0.6rem">${d.c}</small><br>
                     <strong style="color:var(--accent-color)">${d.t}</strong><br>
                     <p style="margin:5px 0">${d.d}</p>
-                    <code style="background:#000; padding:2px 5px; border-radius:4px; display:block">${d.e}</code>
+                    <code style="background:#000; padding:2px 5px; border-radius:4px; display:block; font-size:0.75rem">${d.e}</code>
                 </div>
             `).join('');
         }
@@ -282,7 +292,7 @@
 
             api.onTaskStarted((t) => {
                 document.getElementById('task-title-sidebar').innerText = t.title;
-                document.getElementById('task-desc-sidebar').innerText = t.description;
+                document.getElementById('task-desc-sidebar').innerHTML = t.description.replace(/\n/g, '<br>');
                 initSpreadsheet();
             });
         }
