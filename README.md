@@ -12,6 +12,7 @@
   <img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/Platform-Ubuntu%20%7C%20Windows-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License">
+  <a href="TODO.md"><img src="https://img.shields.io/badge/PRs-todo-7dcfff?style=for-the-badge&labelColor=1a1b26" alt="PRs Welcome"></a>
 </p>
 
 ---
@@ -47,7 +48,7 @@
 
 ## 🛠️ Technology Stack
 
-- **Server:** Node.js, Express, Socket.io, ExcelJS
+- **Server:** Node.js, Express, Socket.io, ExcelJS, Prisma, PostgreSQL
 - **Client:** Electron, Socket.io-client, JSpreadsheet
 - **Discovery:** Bonjour/mDNS for zero-config LAN connectivity
 - **Monitoring:** Windows PowerShell & User32 API integration
@@ -58,12 +59,21 @@
 
 ### Ubuntu Server Setup
 1. Clone the repository to your server.
-2. Run the automated setup script:
+2. Run the automated setup script to install Node.js and dependencies:
    ```bash
    chmod +x setup-ubuntu.sh
    ./setup-ubuntu.sh
    ```
-3. Start the server:
+3. Launch the database (requires Docker):
+   ```bash
+   docker-compose up -d
+   ```
+4. Configure environment and initialize database:
+   ```bash
+   cp .env.example .env
+   cd server && npx prisma migrate dev --name init
+   ```
+5. Start the server:
    ```bash
    cd server && npm start
    ```
