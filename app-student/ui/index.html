@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack Terminal [STUDENT MODE]</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0c10;
+            --panel-color: #161b22;
+            --accent-color: #58a6ff;
+            --danger-color: #f85149;
+            --text-color: #c9d1d9;
+            --sidebar-width: 280px;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            display: flex; height: 100vh;
+        }
+
+        /* 🔒 Lockdown Overlay */
+        #lockdown-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 12, 16, 0.95);
+            z-index: 9999; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px); text-align: center; padding: 40px;
+        }
+        #lockdown-overlay h1 { color: var(--danger-color); font-size: 3rem; margin-bottom: 10px; }
+        #lockdown-overlay p { font-size: 1.2rem; margin-bottom: 30px; }
+
+        /* 🚀 Sidebar */
+        nav {
+            width: var(--sidebar-width);
+            background: var(--panel-color);
+            border-right: 1px solid #30363d;
+            display: flex; flex-direction: column;
+            padding: 20px;
+        }
+
+        .brand {
+            font-size: 1.5rem; font-weight: 700;
+            margin-bottom: 30px; color: #fff;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .brand span { color: var(--accent-color); }
+
+        .lesson-list { flex: 1; list-style: none; padding: 0; margin: 0; }
+        .lesson-item {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 8px;
+            cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+            border: 1px solid transparent;
+        }
+        .lesson-item:hover { background: #21262d; border-color: #30363d; }
+        .lesson-item.active { background: #1f6feb; color: #fff; }
+
+        /* 🖥️ Main Workspace */
+        main { flex: 1; display: flex; flex-direction: column; }
+
+        header {
+            height: 60px; padding: 0 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+            background: var(--danger-color); margin-right: 10px;
+        }
+        .status-connected { background: #3fb950; box-shadow: 0 0 10px #3fb950; }
+
+        /* 📄 Content Area */
+        .workspace {
+            flex: 1; display: grid; grid-template-columns: 1fr 350px;
+            gap: 15px; padding: 20px; overflow-y: auto;
+        }
+
+        .editor-container {
+            background: #0d1117; border-radius: 12px; border: 1px solid #30363d;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .editor-header {
+            padding: 10px 20px; border-bottom: 1px solid #30363d;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .editor-view {
+            flex: 1; font-family: 'JetBrains Mono', monospace;
+            padding: 20px; line-height: 1.6; color: #8b949e;
+        }
+
+        .task-sidebar {
+            background: var(--panel-color); border-radius: 12px; padding: 20px;
+            border: 1px solid #30363d; display: flex; flex-direction: column;
+        }
+
+        .btn-submit {
+            background: #238636; color: #fff; border: none; padding: 12px 20px;
+            border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%;
+            margin-top: auto; transition: 0.2s;
+        }
+        .btn-submit:hover { background: #2ea043; transform: translateY(-2px); }
+
+        #server-info { font-size: 0.8rem; color: #8b949e; margin-top: 20px; }
+
+        /* 🤖 AI / Monitor Status */
+        .monitor-box {
+            margin-top: 20px; font-size: 0.75rem; color: #484f58;
+            background: #0d1117; padding: 10px; border-radius: 6px;
+            border: 1px dashed #30363d;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 🔒 ALERT OVERLAY -->
+    <div id="lockdown-overlay">
+        <h1>🚨 ALERT BEZPIECZEŃSTWA 🚨</h1>
+        <p id="alert-msg">Wykryto niedozwoloną aktywność na Twoim komputerze!</p>
+        <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid var(--danger-color); padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 500px;">
+            Działanie zostało zgłoszone do panelu nauczyciela. Kontynuuj zadanie zgodnie z regulaminem sali informatycznej.
+        </div>
+        <button onclick="document.body.focus(); document.getElementById('lockdown-overlay').style.display='none';" class="btn-submit" style="width: auto; padding: 10px 40px; background: #30363d;">Rozumiem, wracam do pracy</button>
+    </div>
+
+    <!-- 🚀 SIDEBAR -->
+    <nav>
+        <div class="brand">Edu<span>Track</span> OS</div>
+        <ul class="lesson-list">
+            <li class="lesson-item active">Lekcja 1: Podstawy Excel</li>
+            <li class="lesson-item">Lekcja 2: Formuły Logiczne</li>
+            <li class="lesson-item">Lekcja 3: Tabele i wykresy</li>
+            <li class="lesson-item">Egzamin: Arkusz Końcowy</li>
+        </ul>
+        <div id="server-info">Szukanie serwera LAN...</div>
+    </nav>
+
+    <!-- 🖥️ WORKSPACE -->
+    <main>
+        <header>
+            <div><strong>Zadanie:</strong> Obliczanie sumy przychodów</div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <span id="server-address" style="font-size: 0.8rem; color: #8b949e;">Tryb Offline</span>
+                <span class="status-dot" id="status-dot"></span>
+            </div>
+        </header>
+
+        <div class="workspace">
+            <div class="editor-container">
+                <div class="editor-header">
+                    <span>student_worksheet.xlsx</span>
+                    <span style="font-size: 0.8rem; color: #8b949e;">Tryb: Arkusz Kalkulacyjny</span>
+                </div>
+                <div class="editor-view">
+                    <p style="color: #58a6ff;">&gt; Połączono z centralnym systemem sprawdzania.</p>
+                    <p style="color: #fff;">Gotowy do analizy pliku .xlsx</p>
+                    <p style="margin-top: 40px; opacity: 0.5;">[Wizualizacja edytora pojawi się po otwarciu zadania]</p>
+                </div>
+            </div>
+
+            <div class="task-sidebar">
+                <h3>Cel zadania:</h3>
+                <p>1. Otwórz plik <strong>przychody.xlsx</strong>.</p>
+                <p>2. W komórce <strong>A3</strong> wpisz formułę sumującą zakres A1:A2.</p>
+                <p>3. Nie wpisuj wyniku ręcznie!</p>
+                
+                <div class="monitor-box">
+                    <strong>Deep Monitor (Status):</strong><br>
+                    <span>Skanowanie procesów: Aktywne 🟢</span><br>
+                    <span>Anti-Cheat: On 🛡️</span>
+                </div>
+                
+                <button class="btn-submit" onclick="alert('Sprawdzanie logiki arkusza...')">Sprawdź zadanie</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Use the electronAPI bridge from preload.js
+        const api = window.electronAPI;
+
+        if (api) {
+            api.onServerFound((data) => {
+                document.getElementById('status-dot').classList.add('status-connected');
+                document.getElementById('server-address').innerText = "Serwer: " + data.address;
+                document.getElementById('server-info').innerText = "Serwer połączony (Real-Time)";
+            });
+
+            api.onSecurityAlert((data) => {
+                const overlay = document.getElementById('lockdown-overlay');
+                document.getElementById('alert-msg').innerText = data.msg;
+                overlay.style.display = 'flex';
+                // Play a subtle alert sound or something in future
+            });
+        }
+    </script>
+</body>
+</html>

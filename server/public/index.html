@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>EduTrack PRO Laboratory</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Ultra-stable Lightweight Sheets v4 (Official Unpkg) -->
+    <link rel="stylesheet" href="https://unpkg.com/jspreadsheet-ce/dist/jspreadsheet.css" type="text/css" />
+    <link rel="stylesheet" href="https://unpkg.com/jsuites/dist/jsuites.css" type="text/css" />
+    <script src="https://unpkg.com/jspreadsheet-ce/dist/index.min.js"></script>
+    <script src="https://unpkg.com/jsuites/dist/jsuites.js"></script>
+    
+    <style>
+        :root { --sidebar: #0d1117; --bg: #010409; --accent: #58a6ff; --border: #30363d; }
+        body { margin: 0; background: var(--bg); color: #c9d1d9; font-family: 'Outfit', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        aside { width: 320px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; }
+        main { flex: 1; background: #fff; position: relative; overflow: auto; }
+        #spreadsheet { padding: 20px; }
+        .btn { background: var(--accent); color: #000; border: none; padding: 15px; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 20px; width: 100%; text-transform: uppercase; letter-spacing: 1px; }
+        .task-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
+        #results { margin-top: 20px; font-size: 0.85rem; font-family:'JetBrains Mono'; color: #fff; line-height: 1.5; }
+        
+        /* JSpreadsheet adjustments for Dark Mode Sidebar */
+        .jexcel > thead > tr > td { background-color: #f3f3f3 !important; }
+    </style>
+</head>
+<body>
+    <aside>
+        <div style="font-size:1.4rem; font-weight:700; color:var(--accent); margin-bottom:30px;">EDU<span>TRACK_V2.5</span></div>
+        <div class="task-card">
+            <h3 id="task-title" style="margin:0 0 10px 0;">Witaj w EduTrack</h3>
+            <p id="task-desc" style="font-size:0.9rem; line-height:1.5;">Oczekuję na rozpoczęcie zadania przez nauczyciela.</p>
+        </div>
+        <button class="btn" id="check-btn">WYŚLIJ ZADANIE</button>
+        <div id="results"></div>
+    </aside>
+    <main>
+        <div id="spreadsheet"></div>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const hostname = location.hostname || 'Student-PC';
+        let jexcelInstance;
+
+        window.onload = () => {
+            jexcelInstance = jspreadsheet(document.getElementById('spreadsheet'), {
+                data: [[]],
+                minDimensions: [15, 25],
+                columnDrag: true,
+                toolbar: [
+                    { type: 'i', content: 'undo', onclick: () => jexcelInstance.undo() },
+                    { type: 'i', content: 'redo', onclick: () => jexcelInstance.redo() },
+                    { type: 'i', content: 'save', onclick: () => document.getElementById('check-btn').click() },
+                    { type: 'select', k: 'font-family', v: ['Arial', 'Verdana'] },
+                    { type: 'select', k: 'font-size', v: ['9px', '10px', '11px', '12px', '13px', '14px', '15px'] },
+                    { type: 'i', content: 'format_bold', k: 'font-weight', v: 'bold' },
+                    { type: 'i', content: 'format_italic', k: 'font-style', v: 'italic' },
+                    { type: 'i', content: 'format_color_text', k: 'color' },
+                    { type: 'i', content: 'format_color_fill', k: 'background-color' },
+                ],
+                allowComments: true,
+                formulas: true,
+            });
+            console.log("JSpreadsheet Ready.");
+        };
+
+        socket.on('task-started', (t) => {
+            document.getElementById('task-title').innerText = t.title;
+            document.getElementById('task-desc').innerText = t.description;
+            alert("NAUCZYCIEL URUCHOMIŁ ZADANIE:\n" + t.title);
+        });
+
+        document.getElementById('check-btn').onclick = async () => {
+            const results = document.getElementById('results');
+            results.innerHTML = "<div style='color:var(--accent)'>Analizowanie danych...</div>";
+            
+            // Get data with formulas
+            const rawData = jexcelInstance.getData();
+            const luckysheetData = [{
+                name: "Zadanie",
+                celldata: []
+            }];
+
+            rawData.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    const meta = jexcelInstance.getMeta([c, r]);
+                    const formula = jexcelInstance.getFormula([c, r]);
+                    if (cell !== "" || formula) {
+                        luckysheetData[0].celldata.push({
+                            r: r, c: c,
+                            v: { v: cell, f: formula ? "=" + formula : null, m: cell }
+                        });
+                    }
+                });
+            });
+
+            try {
+                const res = await fetch('/api/check-excel', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hostname, sheetJson: JSON.stringify(luckysheetData) })
+                });
+                const report = await res.json();
+                results.innerHTML = `<strong>WYNIK: ${report.totalScore}/${report.maxScore}</strong><br><small>Oceniono: ${report.matches.length} pól.</small>`;
+            } catch (e) {
+                results.innerHTML = "Błąd połączenia z serwerem.";
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>EduTrack: COMMAND CENTER v1.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #05070a; --glass: rgba(22, 27, 34, 0.8); --accent: #00d4ff; --danger: #ff4d4d; --safe: #bcff00; --panel-border: rgba(255,255,255,0.1); }
+        body { margin: 0; background: var(--bg); color: #e6edf3; font-family: 'Outfit', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* 🏰 Layout */
+        aside { width: 320px; background: #0d1117; border-right: 1px solid var(--panel-border); padding: 30px; display: flex; flex-direction: column; z-index: 10; }
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: radial-gradient(circle at 50% 50%, #111e31 0%, #05070a 100%); }
+        
+        /* 🔬 Typography */
+        h1 { font-size: 1.4rem; letter-spacing: 2px; margin: 0 0 40px 0; color: var(--accent); }
+        h1 span { font-weight: 300; color: #fff; }
+        
+        /* 🕹️ Controls */
+        .control-group { margin-bottom: 30px; }
+        label { display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        input, select { width: 100%; background: #05070a; border: 1px solid #30363d; color: white; padding: 12px; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; font-family: inherit; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; transition: 0.3s; text-transform: uppercase; }
+        .btn-primary { background: var(--accent); color: #000; box-shadow: 0 0 15px rgba(0,212,255,0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0,212,255,0.5); }
+        
+        /* 🔲 Grid & Cards */
+        .monitoring-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; padding: 30px; overflow-y: auto; }
+        .card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--panel-border); border-radius: 12px; padding: 20px; position: relative; transition: 0.4s; }
+        .card:hover { border-color: var(--accent); background: rgba(22, 27, 34, 0.95); }
+        .card.alert { border-color: var(--danger); animation: danger-pulse 2s infinite; }
+        @keyframes danger-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(255,77,77,0.2); } 50% { box-shadow: 0 0 30px rgba(255,77,77,0.4); } }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 8px var(--safe); }
+        
+        .screen-thumb { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 6px; cursor: zoom-in; object-fit: cover; border: 1px solid #30363d; margin-bottom: 15px; }
+        .data-row { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #8b949e; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .data-row b { color: #fff; }
+
+        /* 📟 Terminal */
+        #log-console { height: 150px; background: #010409; border-top: 1px solid #30363d; padding: 15px; font-family: 'JetBrains Mono'; font-size: 0.7rem; overflow-y: auto; color: #3fb950; }
+
+        /* 🖼️ Modal */
+        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 100; cursor: zoom-out; }
+        #modal img { max-width: 90%; max-height: 90%; border: 2px solid var(--accent); }
+    </style>
+</head>
+<body>
+    <aside>
+        <h1>EDU<span>TRACK</span></h1>
+        
+        <div class="control-group">
+            <label>Zarządzanie Lekcją</label>
+            <input id="task-title" type="text" placeholder="Tytuł zadania...">
+            <textarea id="task-desc" placeholder="Instrukcje..." style="width:100%; height:80px; background:#05070a; color:white; border:1px solid #30363d; border-radius:6px; padding:10px; margin-bottom:15px; font-family:inherit;"></textarea>
+            <select id="task-type">
+                <option value="online">Tryb Online (Luckysheet)</option>
+                <option value="offline">Tryb Lokalny (MS Excel)</option>
+            </select>
+            <button class="btn btn-primary" onclick="startGlobalTask()">Wypchnij Zadanie</button>
+        </div>
+
+        <div class="control-group" style="margin-top:auto;">
+            <label>Wiadomość Ogólna</label>
+            <input id="global-msg" type="text" placeholder="Treść wiadomości...">
+            <button class="btn" style="background:#30363d; color:white;" onclick="broadcastMessage()">Wyślij do wszystkich</button>
+        </div>
+    </aside>
+
+    <main>
+        <div class="monitoring-grid" id="grid"></div>
+        <div id="log-console">--- SYSTEM READY: Monitoring Active ---</div>
+    </main>
+
+    <div id="modal" onclick="this.style.display='none'"><img id="modal-img"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const grid = document.getElementById('grid');
+        const consoleEl = document.getElementById('log-console');
+        const students = {};
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            consoleEl.innerHTML = `[${time}] ${msg}<br>${consoleEl.innerHTML.substring(0, 1000)}`;
+        }
+
+        socket.on('teacher-update', (data) => {
+            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
+            if (!students[id]) {
+                const card = document.createElement('div');
+                card.id = `card-${id}`;
+                card.className = 'card';
+                grid.appendChild(card);
+                students[id] = true;
+                log(`Device connected: ${data.id}`);
+            }
+            
+            const card = document.getElementById(`card-${id}`);
+            card.innerHTML = `
+                <div class="card-header">
+                    <strong style="font-size:1.1rem">🖥️ ${data.id}</strong>
+                    <div class="status-dot"></div>
+                </div>
+                <img id="screen-${id}" class="screen-thumb" onclick="openModal(this.src)" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect width='100' height='50' fill='%23000'/%3E%3C/svg%3E">
+                <div class="data-row"><span>Wynik Excel:</span><b>${data.lastScore || '0/0'}</b></div>
+                <div class="data-row"><span>Alerty:</span><b style="color:var(--danger)">${data.alerts || 0}</b></div>
+                <div class="data-row"><span>Proces:</span><b>${data.processes ? data.processes[0] : 'Idle'}</b></div>
+                <div id="audit-${id}" style="font-size:0.6rem; color:#8b949e; margin-top:10px; border-top:1px solid #30363d; padding-top:10px;">
+                    Czekam na audyt techniczny...
+                </div>
+                <div style="margin-top:15px; display:flex; gap:10px;">
+                    <button class="btn" style="padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${data.id}')">MSG</button>
+                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="alert('Blokada w fazie dev')">LOCK</button>
+                </div>
+            `;
+        });
+
+        socket.on('teacher-screenshot', (data) => {
+            if(!data.id) return;
+            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
+            let img = document.getElementById(`screen-${id}`);
+            
+            if (!students[id]) {
+                const card = document.createElement('div');
+                card.id = `card-${id}`;
+                card.className = 'card';
+                card.innerHTML = `<div class="card-header"><strong style="font-size:1.1rem">🖥️ ${data.id}</strong><div class="status-dot"></div></div><img id="screen-${id}" class="screen-thumb" onclick="openModal(this.src)">`;
+                grid.appendChild(card);
+                students[id] = true;
+                log(`Quick-connect: ${data.id}`);
+                img = document.getElementById(`screen-${id}`);
+            }
+            
+            if (img) {
+                img.src = `data:image/jpeg;base64,${data.img}`;
+                console.log(`[UI] Updated screen for ${data.id}`);
+            }
+        });
+
+        socket.on('teacher-audit-report', (data) => {
+            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
+            const box = document.getElementById(`audit-${id}`);
+            if (!box) return;
+            let html = '<strong>Audyt INF.0x: </strong>';
+            for (const [app, status] of Object.entries(data.auditResults)) {
+                if(status === 'INSTALLED') html += `<span style="color:var(--safe)">●</span> ${app} `;
+            }
+            box.innerHTML = html;
+        });
+
+        socket.on('teacher-alert', (data) => {
+            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
+            const card = document.getElementById(`card-${id}`);
+            if (card) card.classList.add('alert');
+            log(`SECURITY ALERT: ${data.id} launched banned app!`);
+        });
+
+        function openModal(src) {
+            const m = document.getElementById('modal');
+            const img = document.getElementById('modal-img');
+            img.src = src;
+            m.style.display = 'flex';
+        }
+
+        function startGlobalTask() {
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-desc').value;
+            const type = document.getElementById('task-type').value;
+            socket.emit('start-task', { title, description, type });
+            log(`Global task started: ${title}`);
+        }
+
+        function broadcastMessage() {
+            const msg = document.getElementById('global-msg').value;
+            if(msg) socket.emit('teacher-send-msg', { msg });
+        }
+
+        function sendDirectMessage(targetId) {
+            const msg = prompt("Wiadomość:");
+            if(msg) socket.emit('teacher-send-msg', { targetId, msg });
+        }
+    </script>
+</body>
+</html>
