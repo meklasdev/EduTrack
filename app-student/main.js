@@ -5,21 +5,17 @@ const { exec } = require('child_process');
 const os = require('os');
 const screenshot = require('screenshot-desktop');
 const path = require('path');
-
 let socket;
 let messageWindow;
 let mainWindow;
 const bonjour = new Bonjour();
-
 /** @security Prevent unexpected quit during exam */
 let isQuitting = false;
-
 app.on('before-quit', (e) => {
     if (!isQuitting) {
         e.preventDefault();
     }
 });
-
 /** @ui Create main student exam window */
 function createMainWindow() {
     mainWindow = new BrowserWindow({
@@ -31,9 +27,7 @@ function createMainWindow() {
             preload: path.join(__dirname, 'preload.js')
         }
     });
-
     mainWindow.loadFile(path.join(__dirname, 'ui/index.html'));
-
     mainWindow.on('blur', () => {
         if (socket && socket.connected) {
             socket.emit('security-alert', {
@@ -43,7 +37,6 @@ function createMainWindow() {
             });
         }
     });
-
     mainWindow.on('close', (e) => {
         if (!isQuitting) {
             e.preventDefault();
@@ -51,7 +44,6 @@ function createMainWindow() {
         }
     });
 }
-
 function createMessageWindow() {
     messageWindow = new BrowserWindow({
         width: 500, height: 300,
@@ -61,14 +53,12 @@ function createMessageWindow() {
             contextIsolation: false
         }
     });
-
     messageWindow.on('close', (e) => {
         if (!isQuitting) {
             e.preventDefault();
             messageWindow.hide();
         }
     });
-
     messageWindow.loadURL(`data:text/html,
         <body style="font-family:sans-serif; background:rgba(0,0,0,0.9); color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px solid red; border-radius:15px; margin:0; padding:20px; text-align:center; overflow:hidden;">
             <h1 style="color:red; margin:0;">WIADOMOŚĆ OD NAUCZYCIELA</h1>
@@ -81,17 +71,15 @@ function createMessageWindow() {
         </body>
     `);
 }
-
 ipcMain.on('hide-msg', () => {
     if (messageWindow) messageWindow.hide();
 });
-
+ipcMain.handle('get-hostname', () => os.hostname());
 app.on('ready', () => {
     createMainWindow();
     createMessageWindow();
     startDiscovery();
 });
-
 function startDiscovery() {
     bonjour.find({ type: 'http' }, (service) => {
         if (service.name.includes('EduTrack') && !socket) {
@@ -110,8 +98,9 @@ function startDiscovery() {
                 runSoftwareAudit();
             });
             socket.on('teacher-message', (data) => {
+                if (data.targetId && data.targetId !== os.hostname()) return;
                 if (data.type === 'lock') {
-                    if (mainWindow) mainWindow.webContents.send('security-alert', { msg: data.msg });
+                    if (mainWindow) mainWindow.webContents.send('lock-state', { locked: true, msg: data.msg });
                 } else {
                     messageWindow.webContents.send('set-msg', data.msg);
                     messageWindow.show();
@@ -135,38 +124,42 @@ function startDiscovery() {
         }
     });
 }
-
 /** @monitor Background process & window tracking */
 function startMonitoring() {
     setInterval(() => {
         if (!socket || !socket.connected) return;
-
-        const cmd = os.platform() === 'win32'
-            ? 'powershell "Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object ProcessName, MainWindowTitle | ConvertTo-Json"'
-            : 'ps -e';
-
-        exec(cmd, (err, stdout) => {
-            if (err) return;
-
+        const isWin = os.platform() === 'win32';
+        const windowCmd = isWin
+            ? 'powershell "Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public class Win32 { [DllImport(\\\"user32.dll\\\")] public static extern IntPtr GetForegroundWindow(); [DllImport(\\\"user32.dll\\\")] public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId); }\'; $hwnd = [Win32]::GetForegroundWindow(); $p = 0; [Win32]::GetWindowThreadProcessId($hwnd, [ref]$p); if($p -gt 0){ Get-Process -Id $p | Select-Object ProcessName, MainWindowTitle | ConvertTo-Json }else{@() | ConvertTo-Json}"'
+            : 'ps -eo pid,comm';
+        exec(windowCmd, (err, winStdout) => {
             let windowData = [];
-            try {
-                if (os.platform() === 'win32') {
-                    const data = JSON.parse(stdout);
-                    windowData = Array.isArray(data) ? data : [data];
+            if (!err && winStdout) {
+                try {
+                    if (isWin) {
+                        const parsed = JSON.parse(winStdout);
+                        windowData = Array.isArray(parsed) ? parsed : [parsed];
+                    }
+                } catch (e) {}
+            }
+            const procCmd = isWin ? 'tasklist /fo csv /nh' : 'ps -eo comm';
+            exec(procCmd, (err2, procStdout) => {
+                let processes = [];
+                if (!err2 && procStdout) {
+                    if (isWin) {
+                        processes = procStdout.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
+                    } else {
+                        processes = procStdout.split('\n').map(l => l.trim()).filter(n => n.length > 0);
+                    }
                 }
-            } catch (e) {}
-
-            exec('tasklist /fo csv /nh', (err2, stdout2) => {
-                const processes = stdout2.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
-                socket.emit('agent-report', {
-                    hostname: os.hostname(),
-                    processes,
-                    windows: windowData.map(w => ({ app: w.ProcessName, title: w.MainWindowTitle }))
-                });
+                const report = { hostname: os.hostname(), processes };
+                if (isWin) {
+                    report.windows = windowData.map(w => ({ app: w.ProcessName, title: w.MainWindowTitle || 'Active Window' }));
+                }
+                socket.emit('agent-report', report);
             });
         });
     }, 5000);
-
     setInterval(async () => {
         if (!socket.connected) return;
         try {
@@ -174,11 +167,9 @@ function startMonitoring() {
             socket.emit('agent-screenshot', { hostname: os.hostname(), img: img.toString('base64') });
             console.log(`[AGENT] Sent screenshot to Server (${os.hostname()})`);
         } catch (e) { console.error("Screenshot error", e); }
-    }, 3000); // Faster: Every 3 seconds
+    }, 3000);
 }
-
 app.on('will-quit', () => { bonjour.destroy(); });
-
 /**
  * 🔍 Software Audit: Check for required technical school apps (GIMP, Packet Tracer, etc.)
  */
@@ -192,12 +183,10 @@ async function runSoftwareAudit() {
         'Oracle VirtualBox': 'C:\\Program Files\\Oracle\\VirtualBox\\VirtualBox.exe',
         'Python 3': 'C:\\Program Files\\Python312\\python.exe'
     };
-
     const auditResults = {};
     for (const [name, p] of Object.entries(commonPaths)) {
         auditResults[name] = fs.existsSync(p) ? 'INSTALLED' : 'NOT_FOUND';
     }
-
     console.log("[AUDIT] Local Tech Stack Checked:", auditResults);
     if (socket && socket.connected) {
         socket.emit('software-audit-report', { hostname: os.hostname(), auditResults });

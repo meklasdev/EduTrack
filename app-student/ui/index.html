@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTrack Terminal [STUDENT MODE]</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https:
 
-    <!-- Ultra-stable Lightweight Sheets v4 (Official Unpkg) -->
-    <link rel="stylesheet" href="https://unpkg.com/jspreadsheet-ce/dist/jspreadsheet.css" type="text/css" />
-    <link rel="stylesheet" href="https://unpkg.com/jsuites/dist/jsuites.css" type="text/css" />
-    <script src="https://unpkg.com/jspreadsheet-ce/dist/index.min.js"></script>
-    <script src="https://unpkg.com/jsuites/dist/jsuites.js"></script>
+
+    <link rel="stylesheet" href="https:
+    <link rel="stylesheet" href="https:
+    <script src="https:
+    <script src="https:
 
     <style>
         :root {
@@ -144,7 +144,7 @@
 </head>
 <body>
 
-    <!-- 🔒 ALERT OVERLAY -->
+
     <div id="lockdown-overlay">
         <h1>🚨 ALERT BEZPIECZEŃSTWA 🚨</h1>
         <p id="alert-msg">Wykryto niedozwoloną aktywność na Twoim komputerze!</p>
@@ -154,7 +154,7 @@
         <button onclick="document.body.focus(); document.getElementById('lockdown-overlay').style.display='none';" class="btn-submit" style="width: auto; padding: 10px 40px; background: #30363d;">Rozumiem, wracam do pracy</button>
     </div>
 
-    <!-- 💡 DOCS PANEL -->
+
     <div id="docs-panel">
         <div class="docs-header">
             <span>📚 Asystent EduTrack</span>
@@ -164,7 +164,7 @@
         <div class="docs-content" id="docs-content"></div>
     </div>
 
-    <!-- 🚀 SIDEBAR -->
+
     <nav>
         <div class="brand">Edu<span>Track</span> OS</div>
         <ul class="lesson-list">
@@ -176,7 +176,7 @@
         <div id="server-info">Szukanie serwera LAN...</div>
     </nav>
 
-    <!-- 🖥️ WORKSPACE -->
+
     <main>
         <header>
             <div><strong>Zadanie:</strong> Obliczanie sumy przychodów</div>
@@ -289,9 +289,17 @@
             });
 
             api.onSecurityAlert((data) => {
+                document.getElementById("lock-close-btn").style.display = "block";
                 const overlay = document.getElementById('lockdown-overlay');
                 document.getElementById('alert-msg').innerText = data.msg;
                 overlay.style.display = 'flex';
+            });
+
+            api.onLockState((data) => {
+                const overlay = document.getElementById('lockdown-overlay');
+                document.getElementById('alert-msg').innerText = data.msg;
+                overlay.style.display = 'flex';
+                document.getElementById('lock-close-btn').style.display = 'none';
             });
 
             api.onTaskStarted((t) => {
@@ -309,7 +317,7 @@
 
             const rawData = jexcelInstance.getData();
             const luckysheetData = [{
-                name: "Zadanie",
+                name: "Arkusz1",
                 celldata: []
             }];
 
@@ -326,7 +334,7 @@
                                 v: cell,
                                 f: formula ? "=" + formula : null,
                                 m: cell,
-                                bl: isBold ? 1 : 0 // 1 for bold
+                                bl: isBold ? 1 : 0
                             }
                         });
                     }
@@ -337,7 +345,7 @@
                 const res = await fetch(`${serverUrl}/api/check-excel`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostname: 'Student-PC', sheetJson: JSON.stringify(luckysheetData) })
+                    body: JSON.stringify({ hostname: await api.getHostname(), sheetJson: JSON.stringify(luckysheetData) })
                 });
                 const report = await res.json();
                 results.innerHTML = `WYNIK: ${report.totalScore}/${report.maxScore}`;
