@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
+require('dotenv').config();
 
 const prisma = new PrismaClient();
 const DB_PATH = path.join(__dirname, '../students_db.json');
@@ -36,7 +37,7 @@ async function migrate() {
                     lastMatchedApp: data.lastMatchedApp || null,
                 },
                 create: {
-                    id: hostname, // Using hostname as ID for simplicity if needed, or let it be generated
+                    id: hostname,
                     hostname: hostname,
                     lastSeen: data.lastSeen ? new Date(data.lastSeen) : new Date(),
                     alerts: data.alerts || 0,
@@ -45,7 +46,7 @@ async function migrate() {
                 },
             });
 
-            // Re-create processes (delete old ones first to avoid duplicates during migration)
+            // Re-create processes
             await prisma.process.deleteMany({ where: { studentId: student.id } });
             if (data.processes && Array.isArray(data.processes)) {
                 await prisma.process.createMany({
@@ -71,7 +72,6 @@ async function migrate() {
 
         console.log('[Migration] Successfully migrated all data.');
 
-        // Rename file to avoid re-migration
         const backupPath = `${DB_PATH}.bak`;
         await fs.rename(DB_PATH, backupPath);
         console.log(`[Migration] Renamed students_db.json to students_db.json.bak`);

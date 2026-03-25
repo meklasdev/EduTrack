@@ -4,7 +4,7 @@ This document outlines the massive future for EduTrack, moving from a classroom 
 
 ## 🏛️ 1. Core Architecture & Backend
 - [ ] Implement Redis-based session management for 1000+ concurrent students.
-- [ ] Migrate from JSON storage to a robust PostgreSQL database.
+- [x] Migrate from JSON storage to a robust PostgreSQL database.
 - [ ] Add support for Multi-Teacher environments (Department roles).
 - [ ] Create a microservices architecture for the grading engine.
 - [ ] Add automated database backups to S3/Cloud.
