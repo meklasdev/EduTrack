@@ -2,6 +2,10 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const http = require('http');
 const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const { createClient } = require('redis');
+const session = require('express-session');
+const { RedisStore } = require('connect-redis');
 const { Bonjour } = require('bonjour-service');
 const path = require('path');
 const cors = require('cors');
@@ -12,12 +16,28 @@ require('dotenv').config();
 const app = express();
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*', maxHttpBufferSize: 1e7 } });
+
+// Redis setup for Socket.io and Sessions
+const redisClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+const subClient = redisClient.duplicate();
+
+Promise.all([redisClient.connect(), subClient.connect()]).then(() => {
+    io.adapter(createAdapter(redisClient, subClient));
+    console.log('[EduTrack] Redis Adapter for Socket.io connected.');
+}).catch(err => {
+    console.error('[EduTrack] Redis connection error:', err);
+});
+
 const bonjour = new Bonjour();
 const fs = require('fs-extra');
 const excelChecker = new ExcelLogicChecker();
 const prisma = new PrismaClient();
 const PORT = 8080;
 const ADMIN_PASS = 'edutrack2025';
+
+// Authentication
+const authRoutes = require('./src/routes/auth');
+const authMiddleware = require('./src/middleware/auth');
 
 let currentTask = {
     title: "Egzamin: Arkusz Kalkulacyjny",
@@ -34,26 +54,47 @@ const ExcelJS = require('exceljs');
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(fileUpload());
+
+// Session setup with Redis
+app.use(session({
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET || 'edutrack-secret-key-2025',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    }
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-/** @guard Admin Password Check */
+/** @guard Admin Password Check (DEPRECATED - Use Login) */
 app.use('/admin', (req, res, next) => {
-    const auth = req.query.pass || req.headers['x-admin-pass'];
-    if (auth === ADMIN_PASS || req.hostname === 'localhost') return next();
-    res.status(403).send(`
-        <body style="background:#05070a; color:white; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
-            <h1>403 Forbidden</h1>
-            <p>Użyj hasła w URL: <code>/admin?pass=edutrack2025</code></p>
-        </body>
-    `);
+    // We now use JWT in the frontend, so we don't strictly protect the .html file here
+    // unless we want to do server-side session checks.
+    // For now, let the frontend handle the redirect if the token is missing.
+    next();
 });
 
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
+
+app.use('/api/auth', authRoutes);
+
 app.get('/api/current-task', (req, res) => res.json(currentTask));
 
-app.get('/api/students', async (req, res) => {
+app.get('/api/students', authMiddleware, async (req, res) => {
     try {
+        const { departmentId } = req.user;
         const students = await prisma.student.findMany({
+            where: {
+                OR: [
+                    { departmentId: departmentId },
+                    { departmentId: null } // Show unassigned students to everyone initially?
+                                          // Or better: allow teachers to "adopt" them.
+                ]
+            },
             include: { processes: true, windows: true }
         });
         res.json(students);
@@ -62,7 +103,7 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
-app.post('/api/upload-template', async (req, res) => {
+app.post('/api/upload-template', authMiddleware, async (req, res) => {
     if (!req.files || !req.files.template) return res.status(400).send('No template.');
     const templatePath = path.join(__dirname, 'test-data/template.xlsx');
     await req.files.template.mv(templatePath);
@@ -112,6 +153,16 @@ app.post('/api/check-excel', async (req, res) => {
 });
 
 io.on('connection', (socket) => {
+    socket.on('teacher-auth', (token) => {
+        try {
+            const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'edutrack-jwt-secret-key-2025');
+            socket.join(`dept-${decoded.departmentId}`);
+            console.log(`[Socket] Teacher ${decoded.username} joined dept-${decoded.departmentId}`);
+        } catch (err) {
+            console.log('[Socket] Teacher auth failed');
+        }
+    });
+
     socket.on('agent-report', async (data) => {
         const hostname = data.hostname || "Unknown";
         socket.join(hostname);
@@ -180,15 +231,34 @@ io.on('connection', (socket) => {
             include: { processes: true, windows: true }
         });
 
-        io.emit('teacher-update', { id: hostname, ...data, alerts: updatedStudent.alerts });
+        const deptRoom = updatedStudent.departmentId ? `dept-${updatedStudent.departmentId}` : null;
+        if (deptRoom) {
+            io.to(deptRoom).emit('teacher-update', { id: hostname, ...data, alerts: updatedStudent.alerts });
+        } else {
+            // If student has no department, maybe broadcast to a general room or all?
+            // For now, let's broadcast to all teachers for "adoption"
+            io.emit('teacher-update', { id: hostname, ...data, alerts: updatedStudent.alerts });
+        }
     });
 
-    socket.on('agent-screenshot', (data) => {
-        io.emit('teacher-screenshot', { id: data.hostname, img: data.img });
+    socket.on('agent-screenshot', async (data) => {
+        const student = await prisma.student.findUnique({ where: { hostname: data.hostname } });
+        const deptRoom = student?.departmentId ? `dept-${student.departmentId}` : null;
+        if (deptRoom) {
+            io.to(deptRoom).emit('teacher-screenshot', { id: data.hostname, img: data.img });
+        } else {
+            io.emit('teacher-screenshot', { id: data.hostname, img: data.img });
+        }
     });
 
-    socket.on('software-audit-report', (data) => {
-        io.emit('teacher-audit-report', { id: data.hostname, auditResults: data.auditResults });
+    socket.on('software-audit-report', async (data) => {
+        const student = await prisma.student.findUnique({ where: { hostname: data.hostname } });
+        const deptRoom = student?.departmentId ? `dept-${student.departmentId}` : null;
+        if (deptRoom) {
+            io.to(deptRoom).emit('teacher-audit-report', { id: data.hostname, auditResults: data.auditResults });
+        } else {
+            io.emit('teacher-audit-report', { id: data.hostname, auditResults: data.auditResults });
+        }
     });
 
     socket.on('security-alert', async (data) => {
@@ -196,7 +266,14 @@ io.on('connection', (socket) => {
             where: { hostname: data.hostname },
             data: { alerts: { increment: 1 } }
         }).catch(() => {});
-        io.emit('teacher-alert', { id: data.hostname, ...data });
+
+        const student = await prisma.student.findUnique({ where: { hostname: data.hostname } });
+        const deptRoom = student?.departmentId ? `dept-${student.departmentId}` : null;
+        if (deptRoom) {
+            io.to(deptRoom).emit('teacher-alert', { id: data.hostname, ...data });
+        } else {
+            io.emit('teacher-alert', { id: data.hostname, ...data });
+        }
     });
 
     socket.on('start-task', (data) => {

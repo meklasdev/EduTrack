@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>EduTrack: Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #05070a; --accent: #00d4ff; --panel-border: rgba(255,255,255,0.1); }
+        body { margin: 0; background: var(--bg); color: #e6edf3; font-family: 'Outfit', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .login-card { background: rgba(22, 27, 34, 0.8); border: 1px solid var(--panel-border); border-radius: 8px; padding: 40px; width: 340px; box-shadow: 0 0 30px rgba(0,212,255,0.1); }
+        h1 { font-size: 1.4rem; letter-spacing: 2px; margin: 0 0 30px 0; color: var(--accent); text-align: center; }
+        label { display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; }
+        input { width: 100%; background: #05070a; border: 1px solid #30363d; color: white; padding: 12px; border-radius: 6px; box-sizing: border-box; margin-bottom: 20px; font-family: inherit; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; background: var(--accent); color: #000; text-transform: uppercase; }
+        .error { color: #ff4d4d; font-size: 0.8rem; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1>EDU<span>TRACK</span> LOGIN</h1>
+        <form id="login-form">
+            <label>Username</label>
+            <input type="text" id="username" required>
+            <label>Password</label>
+            <input type="password" id="password" required>
+            <button type="submit" class="btn">Login</button>
+            <div id="error" class="error"></div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('login-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('error');
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.token) {
+                    localStorage.setItem('edutrack_token', data.token);
+                    localStorage.setItem('edutrack_user', JSON.stringify(data.teacher));
+                    window.location.href = '/admin';
+                } else {
+                    errorEl.innerText = data.error || 'Login failed';
+                }
+            } catch (err) {
+                errorEl.innerText = 'Connection error';
+            }
+        };
+    </script>
+</body>
+</html>

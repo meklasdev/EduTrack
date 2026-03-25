@@ -10,17 +10,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Teacher {
+  id             String     @id @default(uuid())
+  username       String     @unique
+  passwordHash   String
+  department     Department @relation(fields: [departmentId], references: [id])
+  departmentId   String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Department {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  teachers  Teacher[]
+  students  Student[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 model Student {
-  id              String    @id
-  hostname        String    @unique
-  lastSeen        DateTime  @default(now())
-  alerts          Int       @default(0)
-  lastScore       String    @default("0/0")
+  id              String      @id
+  hostname        String      @unique
+  lastSeen        DateTime    @default(now())
+  alerts          Int         @default(0)
+  lastScore       String      @default("0/0")
   lastMatchedApp  String?
   processes       Process[]
   windows         Window[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  department      Department? @relation(fields: [departmentId], references: [id])
+  departmentId    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model Process {
