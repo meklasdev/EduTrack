@@ -77,7 +77,12 @@ class ExcelLogicChecker {
      * Internal cell comparison logic
      */
     compareCells(templateCell, studentCell) {
-        // 1. Formula Check (If template has formula, student MUST have logic)
+        // 1. Style & Formatting Check (Trans Work style)
+        if (templateCell.font && templateCell.font.bold && (!studentCell.font || !studentCell.font.bold)) {
+            return { isCorrect: false, note: "Brak pogrubienia czcionki." };
+        }
+
+        // 2. Formula Check (If template has formula, student MUST have logic)
         if (templateCell.formula || (templateCell.value && typeof templateCell.value === 'object' && templateCell.value.formula)) {
             const templateFormula = templateCell.formula || templateCell.value.formula;
             const studentFormula = studentCell.formula || (studentCell.value && studentCell.value.formula);
@@ -86,24 +91,34 @@ class ExcelLogicChecker {
                 return { isCorrect: false, note: "Brak formuły (wpisano wartość 'z palca')." };
             }
 
-            // Normalizing formulas (removing spaces, lowercase)
-            const normTemplate = templateFormula.replace(/\s/g, '').toLowerCase();
-            const normStudent = studentFormula.replace(/\s/g, '').toLowerCase();
+            // Normalizing formulas (removing spaces, lowercase, absolute references)
+            const normalize = (f) => f.replace(/\s/g, '').replace(/\$/g, '').toLowerCase();
+            const normTemplate = normalize(templateFormula);
+            const normStudent = normalize(studentFormula);
 
             if (normTemplate !== normStudent) {
-                // Check if the result value matches even if formula is different (e.g. nested vs simple)
-                // But in logic checking, we might want strict formula matching
-                return { isCorrect: false, note: `Błędna formuła. Oczekiwano: ${templateFormula}` };
+                // Allow some variation in formulas if results match?
+                // For "Microsoft Trans" we usually want strict logic or at least correct function usage
+                const templateFunc = normTemplate.split('(')[0];
+                const studentFunc = normStudent.split('(')[0];
+
+                if (templateFunc !== studentFunc) {
+                    return { isCorrect: false, note: `Użyto złej funkcji. Oczekiwano: ${templateFunc.toUpperCase()}` };
+                }
+                return { isCorrect: false, note: `Błędne argumenty w formule ${templateFunc.toUpperCase()}.` };
             }
         }
 
-        // 2. Value Check (Result Comparison)
-        // Note: ExcelJS 'value' for formulas is the result object.
+        // 3. Value Check (Result Comparison)
         const templateVal = this.getEffectiveValue(templateCell);
         const studentVal = this.getEffectiveValue(studentCell);
 
         if (templateVal != studentVal) {
-            return { isCorrect: false, note: `Błędny wynik. Oczekiwano: ${templateVal}, otrzymano: ${studentVal}` };
+            // Check for small numeric differences (rounding)
+            if (typeof templateVal === 'number' && typeof studentVal === 'number') {
+                if (Math.abs(templateVal - studentVal) < 0.01) return { isCorrect: true, note: "Prawidłowo (z zaokrągleniem)" };
+            }
+            return { isCorrect: false, note: `Błędny wynik. Oczekiwano: ${templateVal}` };
         }
 
         return { isCorrect: true, note: "Prawidłowo" };

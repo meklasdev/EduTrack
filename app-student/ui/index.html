@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTrack Terminal [STUDENT MODE]</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- Ultra-stable Lightweight Sheets v4 (Official Unpkg) -->
+    <link rel="stylesheet" href="https://unpkg.com/jspreadsheet-ce/dist/jspreadsheet.css" type="text/css" />
+    <link rel="stylesheet" href="https://unpkg.com/jsuites/dist/jsuites.css" type="text/css" />
+    <script src="https://unpkg.com/jspreadsheet-ce/dist/index.min.js"></script>
+    <script src="https://unpkg.com/jsuites/dist/jsuites.js"></script>
+
     <style>
         :root {
             --bg-color: #0a0c10;
@@ -92,7 +99,9 @@
         }
         .editor-view {
             flex: 1; font-family: 'JetBrains Mono', monospace;
-            padding: 20px; line-height: 1.6; color: #8b949e;
+            line-height: 1.6; color: #8b949e;
+            overflow: auto;
+            background: #fff;
         }
 
         .task-sidebar {
@@ -111,10 +120,22 @@
 
         /* 🤖 AI / Monitor Status */
         .monitor-box {
-            margin-top: 20px; font-size: 0.75rem; color: #484f58;
+            margin-top: 10px; font-size: 0.75rem; color: #484f58;
             background: #0d1117; padding: 10px; border-radius: 6px;
             border: 1px dashed #30363d;
         }
+
+        /* 💡 Docs Panel */
+        #docs-panel {
+            position: fixed; bottom: 20px; right: 380px; width: 300px; height: 400px;
+            background: var(--panel-color); border: 1px solid var(--accent-color);
+            border-radius: 12px; display: none; flex-direction: column;
+            box-shadow: 0 0 20px rgba(88, 166, 255, 0.2); z-index: 100;
+        }
+        .docs-header { padding: 10px; border-bottom: 1px solid #30363d; font-weight: bold; display: flex; justify-content: space-between; }
+        .docs-content { flex: 1; padding: 15px; overflow-y: auto; font-size: 0.85rem; }
+        .doc-item { margin-bottom: 15px; border-bottom: 1px solid #21262d; padding-bottom: 5px; }
+        .doc-search { padding: 10px; background: #0d1117; border: none; border-bottom: 1px solid #30363d; color: #fff; width: 100%; border-radius: 12px 12px 0 0; }
     </style>
 </head>
 <body>
@@ -127,6 +148,16 @@
             Działanie zostało zgłoszone do panelu nauczyciela. Kontynuuj zadanie zgodnie z regulaminem sali informatycznej.
         </div>
         <button onclick="document.body.focus(); document.getElementById('lockdown-overlay').style.display='none';" class="btn-submit" style="width: auto; padding: 10px 40px; background: #30363d;">Rozumiem, wracam do pracy</button>
+    </div>
+
+    <!-- 💡 DOCS PANEL -->
+    <div id="docs-panel">
+        <div class="docs-header">
+            <span>📚 Asystent EduTrack</span>
+            <span style="cursor:pointer" onclick="document.getElementById('docs-panel').style.display='none'">✕</span>
+        </div>
+        <input type="text" class="doc-search" placeholder="Szukaj formuły (np. suma)..." onkeyup="searchDocs(this.value)">
+        <div class="docs-content" id="docs-content"></div>
     </div>
 
     <!-- 🚀 SIDEBAR -->
@@ -157,36 +188,87 @@
                     <span>student_worksheet.xlsx</span>
                     <span style="font-size: 0.8rem; color: #8b949e;">Tryb: Arkusz Kalkulacyjny</span>
                 </div>
-                <div class="editor-view">
-                    <p style="color: #58a6ff;">&gt; Połączono z centralnym systemem sprawdzania.</p>
-                    <p style="color: #fff;">Gotowy do analizy pliku .xlsx</p>
-                    <p style="margin-top: 40px; opacity: 0.5;">[Wizualizacja edytora pojawi się po otwarciu zadania]</p>
+                <div class="editor-view" id="spreadsheet">
+                    <div style="padding: 20px; color: #000;">
+                        <p style="color: #58a6ff;">&gt; Połączono z centralnym systemem sprawdzania.</p>
+                        <p>Gotowy do analizy pliku .xlsx</p>
+                        <p style="margin-top: 40px; opacity: 0.5;">[Wizualizacja edytora pojawi się po otwarciu zadania]</p>
+                    </div>
                 </div>
             </div>
 
             <div class="task-sidebar">
-                <h3>Cel zadania:</h3>
-                <p>1. Otwórz plik <strong>przychody.xlsx</strong>.</p>
-                <p>2. W komórce <strong>A3</strong> wpisz formułę sumującą zakres A1:A2.</p>
-                <p>3. Nie wpisuj wyniku ręcznie!</p>
+                <h3 id="task-title-sidebar">Cel zadania:</h3>
+                <div id="task-desc-sidebar">
+                    <p>Oczekuję na rozpoczęcie zadania przez nauczyciela.</p>
+                </div>
                 
+                <div id="results" style="margin-top: 20px; font-weight: bold; color: var(--accent-color);"></div>
+
+                <button class="btn" onclick="document.getElementById('docs-panel').style.display='flex'" style="background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:8px; margin-top:10px; width:100%; border-radius:6px; cursor:pointer;">📚 OTWÓRZ POMOC</button>
+
                 <div class="monitor-box">
                     <strong>Deep Monitor (Status):</strong><br>
                     <span>Skanowanie procesów: Aktywne 🟢</span><br>
                     <span>Anti-Cheat: On 🛡️</span>
                 </div>
                 
-                <button class="btn-submit" onclick="alert('Sprawdzanie logiki arkusza...')">Sprawdź zadanie</button>
+                <button class="btn-submit" id="check-btn">Sprawdź zadanie</button>
             </div>
         </div>
     </main>
 
     <script>
-        // Use the electronAPI bridge from preload.js
         const api = window.electronAPI;
+        let jexcelInstance;
+
+        const EXCEL_DOCS = [
+            { t: "SUMA(zakres)", d: "Dodaje wszystkie liczby w zakresie komórek.", e: "=SUMA(A1:A10)" },
+            { t: "ŚREDNIA(zakres)", d: "Zwraca średnią arytmetyczną argumentów.", e: "=ŚREDNIA(B1:B5)" },
+            { t: "JEŻELI(test; prawda; fałsz)", d: "Sprawdza czy warunek jest spełniony.", e: "=JEŻELI(C1>10; 'OK'; 'BŁĄD')" },
+            { t: "WYSZUKAJ.PIONOWO(szukana; tabela; nr_kol; [zakres])", d: "Szuka wartości w pierwszej kolumnie tabeli.", e: "=WYSZUKAJ.PIONOWO(D1; A1:B10; 2; 0)" },
+            { t: "LICZ.JEŻELI(zakres; kryterium)", d: "Zlicza komórki spełniające warunek.", e: "=LICZ.JEŻELI(A1:A20; '>50')" }
+        ];
+
+        function searchDocs(query) {
+            const content = document.getElementById('docs-content');
+            const filtered = EXCEL_DOCS.filter(d => d.t.toLowerCase().includes(query.toLowerCase()) || d.d.toLowerCase().includes(query.toLowerCase()));
+            content.innerHTML = filtered.map(d => `
+                <div class="doc-item">
+                    <strong style="color:var(--accent-color)">${d.t}</strong><br>
+                    <p style="margin:5px 0">${d.d}</p>
+                    <code style="background:#000; padding:2px 5px; border-radius:4px; display:block">${d.e}</code>
+                </div>
+            `).join('');
+        }
+        searchDocs('');
+
+        let serverUrl = '';
+
+        function initSpreadsheet() {
+            document.getElementById('spreadsheet').innerHTML = '';
+            jexcelInstance = jspreadsheet(document.getElementById('spreadsheet'), {
+                data: [[]],
+                minDimensions: [15, 25],
+                columnDrag: true,
+                toolbar: [
+                    { type: 'i', content: 'undo', onclick: () => jexcelInstance.undo() },
+                    { type: 'i', content: 'redo', onclick: () => jexcelInstance.redo() },
+                    { type: 'select', k: 'font-family', v: ['Arial', 'Verdana'] },
+                    { type: 'select', k: 'font-size', v: ['9px', '10px', '11px', '12px', '13px', '14px', '15px'] },
+                    { type: 'i', content: 'format_bold', k: 'font-weight', v: 'bold' },
+                    { type: 'i', content: 'format_italic', k: 'font-style', v: 'italic' },
+                    { type: 'i', content: 'format_color_text', k: 'color' },
+                    { type: 'i', content: 'format_color_fill', k: 'background-color' },
+                ],
+                allowComments: true,
+                formulas: true,
+            });
+        }
 
         if (api) {
             api.onServerFound((data) => {
+                serverUrl = data.address;
                 document.getElementById('status-dot').classList.add('status-connected');
                 document.getElementById('server-address').innerText = "Serwer: " + data.address;
                 document.getElementById('server-info').innerText = "Serwer połączony (Real-Time)";
@@ -196,9 +278,59 @@
                 const overlay = document.getElementById('lockdown-overlay');
                 document.getElementById('alert-msg').innerText = data.msg;
                 overlay.style.display = 'flex';
-                // Play a subtle alert sound or something in future
+            });
+
+            api.onTaskStarted((t) => {
+                document.getElementById('task-title-sidebar').innerText = t.title;
+                document.getElementById('task-desc-sidebar').innerText = t.description;
+                initSpreadsheet();
             });
         }
+
+        document.getElementById('check-btn').onclick = async () => {
+            if (!jexcelInstance) return alert("Brak aktywnego zadania.");
+
+            const results = document.getElementById('results');
+            results.innerHTML = "Analizowanie danych...";
+
+            const rawData = jexcelInstance.getData();
+            const luckysheetData = [{
+                name: "Zadanie",
+                celldata: []
+            }];
+
+            rawData.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    const formula = jexcelInstance.getFormula([c, r]);
+                    const style = jexcelInstance.getStyle([c, r]);
+                    const isBold = style && style.match(/font-weight:\s*bold/);
+
+                    if (cell !== "" || formula || isBold) {
+                        luckysheetData[0].celldata.push({
+                            r: r, c: c,
+                            v: {
+                                v: cell,
+                                f: formula ? "=" + formula : null,
+                                m: cell,
+                                bl: isBold ? 1 : 0 // 1 for bold
+                            }
+                        });
+                    }
+                });
+            });
+
+            try {
+                const res = await fetch(`${serverUrl}/api/check-excel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hostname: 'Student-PC', sheetJson: JSON.stringify(luckysheetData) })
+                });
+                const report = await res.json();
+                results.innerHTML = `WYNIK: ${report.totalScore}/${report.maxScore}`;
+            } catch (e) {
+                results.innerHTML = "Błąd połączenia.";
+            }
+        };
     </script>
 </body>
 </html>

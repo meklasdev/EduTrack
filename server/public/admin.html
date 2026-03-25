@@ -107,13 +107,14 @@
                 <img id="screen-${id}" class="screen-thumb" onclick="openModal(this.src)" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect width='100' height='50' fill='%23000'/%3E%3C/svg%3E">
                 <div class="data-row"><span>Wynik Excel:</span><b>${data.lastScore || '0/0'}</b></div>
                 <div class="data-row"><span>Alerty:</span><b style="color:var(--danger)">${data.alerts || 0}</b></div>
-                <div class="data-row"><span>Proces:</span><b>${data.processes ? data.processes[0] : 'Idle'}</b></div>
+                <div class="data-row"><span>Okna:</span><b>${data.windows ? data.windows.length : 0} aktywnych</b></div>
+                <div class="data-row"><span>Ostatnie okno:</span><b>${data.windows && data.windows[0] ? data.windows[0].title.substring(0,25) : 'Brak'}</b></div>
                 <div id="audit-${id}" style="font-size:0.6rem; color:#8b949e; margin-top:10px; border-top:1px solid #30363d; padding-top:10px;">
                     Czekam na audyt techniczny...
                 </div>
                 <div style="margin-top:15px; display:flex; gap:10px;">
                     <button class="btn" style="padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${data.id}')">MSG</button>
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="alert('Blokada w fazie dev')">LOCK</button>
+                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="remoteLock('${data.id}')">LOCK</button>
                 </div>
             `;
         });
@@ -155,7 +156,7 @@
             const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
             const card = document.getElementById(`card-${id}`);
             if (card) card.classList.add('alert');
-            log(`SECURITY ALERT: ${data.id} launched banned app!`);
+            log(`SECURITY ALERT: ${data.id} - ${data.msg}`);
         });
 
         function openModal(src) {
@@ -181,6 +182,12 @@
         function sendDirectMessage(targetId) {
             const msg = prompt("Wiadomość:");
             if(msg) socket.emit('teacher-send-msg', { targetId, msg });
+        }
+
+        function remoteLock(targetId) {
+            if(confirm(`Zablokować ekran ucznia ${targetId}?`)) {
+                socket.emit('teacher-send-msg', { targetId, msg: "TWÓJ EKRAN ZOSTAŁ ZABLOKOWANY PRZEZ NAUCZYCIELA!", type: 'lock' });
+            }
         }
     </script>
 </body>

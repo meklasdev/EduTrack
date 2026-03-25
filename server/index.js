@@ -64,6 +64,8 @@ async function luckysheetToExcel(jsonStr) {
                 const excelCell = worksheet.getCell(cell.r + 1, cell.c + 1);
                 if (cell.v && cell.v.f) excelCell.value = { formula: cell.v.f.substring(1), result: cell.v.v };
                 else excelCell.value = cell.v ? (cell.v.v || cell.v) : '';
+
+                if (cell.v && cell.v.bl) excelCell.font = { bold: true };
             });
         }
     });
@@ -98,10 +100,28 @@ io.on('connection', (socket) => {
     socket.on('agent-report', (data) => {
         const hostname = data.hostname || "Unknown";
         if (!studentsStore[hostname]) {
-            studentsStore[hostname] = { hostname, lastSeen: new Date(), processes: [], alerts: 0, lastScore: '0/0' };
+            studentsStore[hostname] = {
+                hostname,
+                lastSeen: new Date(),
+                processes: [],
+                windows: [],
+                browsingHistory: [],
+                alerts: 0,
+                lastScore: '0/0'
+            };
         }
         studentsStore[hostname].processes = data.processes || [];
+        studentsStore[hostname].windows = data.windows || [];
         studentsStore[hostname].lastSeen = new Date();
+
+        // Anti-cheat simple check
+        const banned = ['discord', 'whatsapp', 'spotify', 'chrome', 'edge'];
+        const activeBanned = (data.windows || []).filter(w => banned.some(b => w.app.toLowerCase().includes(b)));
+        if (activeBanned.length > 0) {
+            studentsStore[hostname].alerts++;
+            io.emit('teacher-alert', { id: hostname, msg: `Wykryto: ${activeBanned[0].title}` });
+        }
+
         saveDB();
         io.emit('teacher-update', { id: hostname, ...data });
     });
