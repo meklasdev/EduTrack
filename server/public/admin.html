@@ -48,7 +48,14 @@
 </head>
 <body>
     <aside>
-        <h1>EDU<span>TRACK</span></h1>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <h1>EDU<span>TRACK</span></h1>
+            <button class="btn" style="width:auto; padding:5px 10px; font-size:0.6rem; background:#30363d; color:white;" onclick="logout()">LOGOUT</button>
+        </div>
+        <div id="user-info" style="font-size:0.75rem; color:#8b949e; margin-bottom:20px; border-bottom:1px solid #30363d; padding-bottom:15px;">
+            Teacher: <b id="user-name" style="color:white;">-</b><br>
+            Department: <b id="user-dept" style="color:var(--accent);">-</b>
+        </div>
         
         <div class="control-group">
             <label>Zarządzanie Lekcją</label>
@@ -81,7 +88,31 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        // --- Authentication Check ---
+        const token = localStorage.getItem('edutrack_token');
+        const userData = JSON.parse(localStorage.getItem('edutrack_user') || '{}');
+
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        document.getElementById('user-name').innerText = userData.username || 'Unknown';
+        document.getElementById('user-dept').innerText = userData.department || 'General';
+
+        function logout() {
+            localStorage.removeItem('edutrack_token');
+            localStorage.removeItem('edutrack_user');
+            window.location.href = '/login';
+        }
+
+        const socket = io({
+            auth: { token: token } // Alternative: handle on 'connect'
+        });
+
+        socket.on('connect', () => {
+            socket.emit('teacher-auth', token);
+        });
+
         const grid = document.getElementById('grid');
         const consoleEl = document.getElementById('log-console');
         const students = {};
@@ -100,7 +131,26 @@
                  .replace(/'/g, "&#039;");
         }
 
+        // --- Initial Data Load ---
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 401 || res.status === 400) logout();
+                const studentsData = await res.json();
+                studentsData.forEach(s => {
+                    updateStudentCard({ id: s.hostname, ...s });
+                });
+            } catch (err) { log('Error loading students'); }
+        }
+        loadStudents();
+
         socket.on('teacher-update', (data) => {
+            updateStudentCard(data);
+        });
+
+        function updateStudentCard(data) {
             const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
             if (!students[id]) {
                 const card = document.createElement('div');
@@ -138,7 +188,7 @@
                     <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="remoteLock('${safeId}')">LOCK</button>
                 </div>
             `;
-        });
+        }
 
         socket.on('teacher-screenshot', (data) => {
             if(!data.id) return;
@@ -203,7 +253,11 @@
             if (templateFile) {
                 const formData = new FormData();
                 formData.append('template', templateFile);
-                await fetch('/api/upload-template', { method: 'POST', body: formData });
+                await fetch('/api/upload-template', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 log("Template uploaded successfully.");
             }
 
