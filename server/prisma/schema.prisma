@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id              String    @id
+  hostname        String    @unique
+  lastSeen        DateTime  @default(now())
+  alerts          Int       @default(0)
+  lastScore       String    @default("0/0")
+  lastMatchedApp  String?
+  processes       Process[]
+  windows         Window[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Process {
+  id        Int      @id @default(autoincrement())
+  name      String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+}
+
+model Window {
+  id        Int      @id @default(autoincrement())
+  title     String
+  app       String?
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+}
