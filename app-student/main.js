@@ -74,6 +74,7 @@ function createMessageWindow() {
 ipcMain.on('hide-msg', () => {
     if (messageWindow) messageWindow.hide();
 });
+ipcMain.handle('get-hostname', () => os.hostname());
 app.on('ready', () => {
     createMainWindow();
     createMessageWindow();
@@ -82,7 +83,7 @@ app.on('ready', () => {
 function startDiscovery() {
     bonjour.find({ type: 'http' }, (service) => {
         if (service.name.includes('EduTrack') && !socket) {
-            const serverUrl = `http:
+            const serverUrl = `http://${service.referer.address}:${service.port}`;
             socket = io(serverUrl);
             socket.on('connect', () => {
                 console.log("[AGENT] Connected to Server!");
@@ -97,8 +98,9 @@ function startDiscovery() {
                 runSoftwareAudit();
             });
             socket.on('teacher-message', (data) => {
+                if (data.targetId && data.targetId !== os.hostname()) return;
                 if (data.type === 'lock') {
-                    if (mainWindow) mainWindow.webContents.send('security-alert', { msg: data.msg });
+                    if (mainWindow) mainWindow.webContents.send('lock-state', { locked: true, msg: data.msg });
                 } else {
                     messageWindow.webContents.send('set-msg', data.msg);
                     messageWindow.show();
@@ -126,25 +128,35 @@ function startDiscovery() {
 function startMonitoring() {
     setInterval(() => {
         if (!socket || !socket.connected) return;
-        const cmd = os.platform() === 'win32'
-            ? 'powershell "Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object ProcessName, MainWindowTitle | ConvertTo-Json"'
-            : 'ps -e';
-        exec(cmd, (err, stdout) => {
-            if (err) return;
+        const isWin = os.platform() === 'win32';
+        const windowCmd = isWin
+            ? 'powershell "Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public class Win32 { [DllImport(\\\"user32.dll\\\")] public static extern IntPtr GetForegroundWindow(); [DllImport(\\\"user32.dll\\\")] public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId); }\'; $hwnd = [Win32]::GetForegroundWindow(); $p = 0; [Win32]::GetWindowThreadProcessId($hwnd, [ref]$p); if($p -gt 0){ Get-Process -Id $p | Select-Object ProcessName, MainWindowTitle | ConvertTo-Json }else{@() | ConvertTo-Json}"'
+            : 'ps -eo pid,comm';
+        exec(windowCmd, (err, winStdout) => {
             let windowData = [];
-            try {
-                if (os.platform() === 'win32') {
-                    const data = JSON.parse(stdout);
-                    windowData = Array.isArray(data) ? data : [data];
+            if (!err && winStdout) {
+                try {
+                    if (isWin) {
+                        const parsed = JSON.parse(winStdout);
+                        windowData = Array.isArray(parsed) ? parsed : [parsed];
+                    }
+                } catch (e) {}
+            }
+            const procCmd = isWin ? 'tasklist /fo csv /nh' : 'ps -eo comm';
+            exec(procCmd, (err2, procStdout) => {
+                let processes = [];
+                if (!err2 && procStdout) {
+                    if (isWin) {
+                        processes = procStdout.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
+                    } else {
+                        processes = procStdout.split('\n').map(l => l.trim()).filter(n => n.length > 0);
+                    }
                 }
-            } catch (e) {}
-            exec('tasklist /fo csv /nh', (err2, stdout2) => {
-                const processes = stdout2.split('\n').map(line => line.split(',')[0].replace(/"/g, '')).filter(n => n.length > 0);
-                socket.emit('agent-report', {
-                    hostname: os.hostname(),
-                    processes,
-                    windows: windowData.map(w => ({ app: w.ProcessName, title: w.MainWindowTitle }))
-                });
+                const report = { hostname: os.hostname(), processes };
+                if (isWin) {
+                    report.windows = windowData.map(w => ({ app: w.ProcessName, title: w.MainWindowTitle || 'Active Window' }));
+                }
+                socket.emit('agent-report', report);
             });
         });
     }, 5000);

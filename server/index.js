@@ -91,6 +91,7 @@ app.post('/api/check-excel', async (req, res) => {
 io.on('connection', (socket) => {
     socket.on('agent-report', (data) => {
         const hostname = data.hostname || "Unknown";
+        socket.join(hostname);
         if (!studentsStore[hostname]) {
             studentsStore[hostname] = {
                 hostname,
@@ -99,13 +100,14 @@ io.on('connection', (socket) => {
                 windows: [],
                 browsingHistory: [],
                 alerts: 0,
-                lastScore: '0/0'
+                lastScore: '0/0',
+                lastMatchedApp: null
             };
         }
         studentsStore[hostname].processes = data.processes || [];
         studentsStore[hostname].windows = data.windows || [];
         studentsStore[hostname].lastSeen = new Date();
-        /** @security AI & Communication Detection */
+        /** @security AI & Communication Detection with Deduplication */
         const banned = [
             'discord', 'whatsapp', 'spotify', 'messenger', 'telegram', 'slack',
             'chatgpt', 'openai', 'claude', 'gemini', 'deepseek', 'ollama', 'copilot',
@@ -113,14 +115,21 @@ io.on('connection', (socket) => {
             'chrome', 'edge', 'firefox', 'opera'
         ];
         const activeBanned = (data.windows || []).filter(w => {
+            if (!w.app) return false;
             const app = w.app.toLowerCase();
-            const title = w.title.toLowerCase();
+            const title = (w.title || '').toLowerCase();
             return banned.some(b => app.includes(b) || title.includes(b));
         });
         if (activeBanned.length > 0) {
-            studentsStore[hostname].alerts++;
-            const msg = `WYKRYTO ZABRONIONĄ AKTYWNOŚĆ (AI/COMM): ${activeBanned[0].title}`;
-            io.emit('teacher-alert', { id: hostname, msg, type: 'security' });
+            const currentApp = activeBanned[0].app;
+            if (studentsStore[hostname].lastMatchedApp !== currentApp) {
+                studentsStore[hostname].alerts++;
+                studentsStore[hostname].lastMatchedApp = currentApp;
+                const msg = `WYKRYTO ZABRONIONĄ AKTYWNOŚĆ (AI/COMM): ${activeBanned[0].title}`;
+                io.emit('teacher-alert', { id: hostname, msg, type: 'security' });
+            }
+        } else {
+            studentsStore[hostname].lastMatchedApp = null;
         }
         saveDB();
         io.emit('teacher-update', { id: hostname, ...data });
@@ -143,7 +152,11 @@ io.on('connection', (socket) => {
         io.emit('task-started', currentTask);
     });
     socket.on('teacher-send-msg', (data) => {
-        io.emit('teacher-message', data);
+        if (data.targetId) {
+            io.to(data.targetId).emit('teacher-message', data);
+        } else {
+            io.emit('teacher-message', data);
+        }
     });
 });
 bonjour.publish({ name: 'EduTrack Central Server', type: 'http', port: PORT });

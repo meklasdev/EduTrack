@@ -91,6 +91,15 @@
             consoleEl.innerHTML = `[${time}] ${msg}<br>${consoleEl.innerHTML.substring(0, 1000)}`;
         }
 
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         socket.on('teacher-update', (data) => {
             const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
             if (!students[id]) {
@@ -99,26 +108,34 @@
                 card.className = 'card';
                 grid.appendChild(card);
                 students[id] = true;
-                log(`Device connected: ${data.id}`);
+                log(`Device connected: ${escapeHtml(data.id)}`);
             }
             
             const card = document.getElementById(`card-${id}`);
+            const safeId = escapeHtml(data.id);
+            const safeScore = escapeHtml(data.lastScore || '0/0');
+            const safeAlerts = escapeHtml(String(data.alerts || 0));
+            const safeWindowsCount = escapeHtml(String(data.windows ? data.windows.length : 0));
+            const lastWinTitle = data.windows && data.windows[0] ? data.windows[0].title : 'Brak';
+            const safeLastWinTitle = escapeHtml(lastWinTitle.substring(0, 25));
+            const fullWinTitle = escapeHtml(lastWinTitle);
+
             card.innerHTML = `
                 <div class="card-header">
-                    <strong style="font-size:1.1rem">🖥️ ${data.id}</strong>
+                    <strong style="font-size:1.1rem">🖥️ ${safeId}</strong>
                     <div class="status-dot"></div>
                 </div>
                 <img id="screen-${id}" class="screen-thumb" onclick="openModal(this.src)" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect width='100' height='50' fill='%23000'/%3E%3C/svg%3E">
-                <div class="data-row"><span>Wynik Excel:</span><b>${data.lastScore || '0/0'}</b></div>
-                <div class="data-row"><span>Alerty:</span><b style="color:var(--danger)">${data.alerts || 0}</b></div>
-                <div class="data-row"><span>Okna:</span><b>${data.windows ? data.windows.length : 0} aktywnych</b></div>
-                <div class="data-row"><span>Ostatnie okno:</span><b title="${data.windows && data.windows[0] ? data.windows[0].title : ''}">${data.windows && data.windows[0] ? data.windows[0].title.substring(0,25) + '...' : 'Brak'}</b></div>
+                <div class="data-row"><span>Wynik Excel:</span><b>${safeScore}</b></div>
+                <div class="data-row"><span>Alerty:</span><b style="color:var(--danger)">${safeAlerts}</b></div>
+                <div class="data-row"><span>Okna:</span><b>${safeWindowsCount} aktywnych</b></div>
+                <div class="data-row"><span>Ostatnie okno:</span><b title="${fullWinTitle}">${safeLastWinTitle}...</b></div>
                 <div id="audit-${id}" style="font-size:0.6rem; color:#8b949e; margin-top:10px; border-top:1px solid #30363d; padding-top:10px;">
                     Czekam na audyt techniczny...
                 </div>
                 <div style="margin-top:15px; display:flex; gap:10px;">
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${data.id}')">MSG</button>
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="remoteLock('${data.id}')">LOCK</button>
+                    <button class="btn" style="padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${safeId}')">MSG</button>
+                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="remoteLock('${safeId}')">LOCK</button>
                 </div>
             `;
         });
@@ -165,7 +182,9 @@
             }
             const color = data.type === 'focus_loss' ? '#ffcc00' : 'var(--danger)';
             const time = new Date().toLocaleTimeString();
-            consoleEl.innerHTML = `<div style="color:${color}">[${time}] 🚨 ALERT (${data.id}): ${data.msg}</div>${consoleEl.innerHTML}`;
+            const safeMsg = escapeHtml(data.msg);
+            const safeId = escapeHtml(data.id);
+            consoleEl.innerHTML = `<div style="color:${color}">[${time}] 🚨 ALERT (${safeId}): ${safeMsg}</div>${consoleEl.innerHTML}`;
         });
 
         function openModal(src) {

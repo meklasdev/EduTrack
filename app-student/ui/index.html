@@ -289,9 +289,17 @@
             });
 
             api.onSecurityAlert((data) => {
+                document.getElementById("lock-close-btn").style.display = "block";
                 const overlay = document.getElementById('lockdown-overlay');
                 document.getElementById('alert-msg').innerText = data.msg;
                 overlay.style.display = 'flex';
+            });
+
+            api.onLockState((data) => {
+                const overlay = document.getElementById('lockdown-overlay');
+                document.getElementById('alert-msg').innerText = data.msg;
+                overlay.style.display = 'flex';
+                document.getElementById('lock-close-btn').style.display = 'none';
             });
 
             api.onTaskStarted((t) => {
@@ -309,7 +317,7 @@
 
             const rawData = jexcelInstance.getData();
             const luckysheetData = [{
-                name: "Zadanie",
+                name: "Arkusz1",
                 celldata: []
             }];
 
@@ -337,7 +345,7 @@
                 const res = await fetch(`${serverUrl}/api/check-excel`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostname: 'Student-PC', sheetJson: JSON.stringify(luckysheetData) })
+                    body: JSON.stringify({ hostname: await api.getHostname(), sheetJson: JSON.stringify(luckysheetData) })
                 });
                 const report = await res.json();
                 results.innerHTML = `WYNIK: ${report.totalScore}/${report.maxScore}`;
