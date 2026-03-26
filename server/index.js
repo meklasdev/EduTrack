@@ -10,6 +10,7 @@ const { Bonjour } = require('bonjour-service');
 const path = require('path');
 const cors = require('cors');
 const ExcelLogicChecker = require('./src/logic/excel-checker');
+const PDFDocument = require('pdfkit');
 const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
@@ -108,6 +109,86 @@ app.post('/api/upload-template', authMiddleware, async (req, res) => {
     const templatePath = path.join(__dirname, 'test-data/template.xlsx');
     await req.files.template.mv(templatePath);
     res.send('Template updated.');
+});
+
+app.get('/api/report/:hostname', authMiddleware, async (req, res) => {
+    const { hostname } = req.params;
+    const { departmentId } = req.user;
+    try {
+        const student = await prisma.student.findFirst({
+            where: {
+                hostname,
+                departmentId: departmentId
+            },
+            include: { windows: true, processes: true }
+        });
+
+        if (!student) return res.status(404).send('Student not found or access denied');
+
+        const doc = new PDFDocument();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=EduTrack_Report_${hostname}.pdf`);
+        doc.pipe(res);
+
+        doc.fontSize(25).text('EduTrack Pro: Raport Incydentu', { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(14).text(`Uczeń: ${student.hostname}`);
+        doc.text(`Data: ${new Date().toLocaleString()}`);
+        doc.text(`Liczba Alertów: ${student.alerts}`);
+        doc.text(`Ostatni Wynik: ${student.lastScore}`);
+        doc.moveDown();
+
+        doc.fontSize(18).text('Aktywne Okna podczas Incydentu:', { underline: true });
+        student.windows.forEach(w => {
+            doc.fontSize(12).text(`- [${w.app || 'Unknown'}] ${w.title}`);
+        });
+
+        doc.moveDown();
+        doc.fontSize(18).text('Wykryte Procesy:', { underline: true });
+        student.processes.slice(0, 20).forEach(p => {
+            doc.fontSize(10).text(`- ${p.name}`);
+        });
+
+        doc.end();
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+app.get('/api/report-all', authMiddleware, async (req, res) => {
+    try {
+        const { departmentId } = req.user;
+        if (!departmentId) return res.status(403).send('Teacher has no department assigned');
+
+        const students = await prisma.student.findMany({
+            where: { departmentId },
+            include: { windows: true, processes: true }
+        });
+
+        const doc = new PDFDocument();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=EduTrack_Summary_Report.pdf`);
+        doc.pipe(res);
+
+        doc.fontSize(25).text('EduTrack Pro: Raport Podsumowujący Klasę', { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(14).text(`Wydział: ${req.user.departmentId}`);
+        doc.text(`Nauczyciel: ${req.user.username}`);
+        doc.text(`Data: ${new Date().toLocaleString()}`);
+        doc.moveDown();
+
+        students.forEach(student => {
+            doc.fontSize(18).text(`Uczeń: ${student.hostname}`, { underline: true });
+            doc.fontSize(12).text(`Liczba Alertów: ${student.alerts}`);
+            doc.text(`Ostatni Wynik: ${student.lastScore}`);
+            doc.text(`Ostatnio Widziany: ${student.lastSeen.toLocaleString()}`);
+            doc.moveDown(0.5);
+        });
+
+        doc.end();
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
 
 /**

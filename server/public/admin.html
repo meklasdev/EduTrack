@@ -77,25 +77,11 @@
         }
         .nav-item:hover { color: var(--teams-text); background: rgba(255,255,255,0.05); }
         .nav-item.active { color: var(--teams-purple); border-left: 3px solid var(--teams-purple); background: rgba(98, 100, 167, 0.1); }
-        .nav-item.active svg { stroke: var(--teams-purple); }
 
-        .nav-icon-svg {
-            width: 24px;
-            height: 24px;
+        .nav-icon {
+            font-size: 20px;
             margin-bottom: 4px;
-            stroke: var(--teams-text-secondary);
-            stroke-width: 1.5;
-            fill: none;
-            transition: stroke 0.2s, transform 0.2s;
         }
-        .nav-item:hover .nav-icon-svg { stroke: var(--teams-text); transform: scale(1.1); }
-
-        @keyframes pulse-stroke {
-            0% { stroke-width: 1.5; }
-            50% { stroke-width: 2.5; stroke: var(--teams-purple); }
-            100% { stroke-width: 1.5; }
-        }
-        .nav-item.active .nav-icon-svg { animation: pulse-stroke 2s infinite ease-in-out; }
 
         /* ⬜ Main Workspace */
         .main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -134,7 +120,6 @@
             left: 2px;
             transition: transform 0.3s;
         }
-        body.light-mode .theme-toggle { background: var(--teams-purple); }
         body.light-mode .theme-toggle::after { transform: translateX(20px); }
 
         /* 📋 Views */
@@ -149,6 +134,7 @@
             display: flex;
             flex-direction: column;
             padding: 20px;
+            overflow-y: auto;
         }
         .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--teams-text-secondary); margin-bottom: 16px; letter-spacing: 0.5px; }
 
@@ -177,6 +163,7 @@
             cursor: pointer;
             transition: 0.2s;
             font-size: 13px;
+            margin-bottom: 8px;
         }
         .btn-teams:hover { background: var(--teams-purple-hover); transform: translateY(-1px); }
         .btn-outline { background: transparent; border: 1px solid var(--teams-border); color: var(--teams-text); }
@@ -226,8 +213,6 @@
             gap: 40px;
             transform: rotateX(25deg);
             transform-style: preserve-3d;
-            min-height: 100px;
-            min-width: 100px;
         }
         .map-desk {
             width: 180px;
@@ -312,82 +297,164 @@
 
         #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
         #modal img { max-width: 95%; max-height: 95%; border: 3px solid var(--teams-purple); border-radius: 4px; }
+
+        /* 🖼️ Gallery View */
+        .gallery-view {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            align-content: start;
+        }
+        .gallery-item {
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--teams-border);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .gallery-item:hover { transform: scale(1.05); border-color: var(--teams-purple); }
+        .gallery-item img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .gallery-label { padding: 4px 8px; font-size: 10px; background: var(--teams-card-bg); text-align: center; }
+
     </style>
 </head>
 <body>
-    <aside>
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <h1>EDU<span>TRACK</span></h1>
-            <button class="btn" style="width:auto; padding:5px 10px; font-size:0.6rem; background:#30363d; color:white;" onclick="logout()">LOGOUT</button>
-        </div>
-        <div id="user-info" style="font-size:0.75rem; color:#8b949e; margin-bottom:20px; border-bottom:1px solid #30363d; padding-bottom:15px;">
-            Teacher: <b id="user-name" style="color:white;">-</b><br>
-            Department: <b id="user-dept" style="color:var(--accent);">-</b>
-        </div>
-        
-        <div class="control-group">
-            <label>Zarządzanie Lekcją</label>
-            <input id="task-title" type="text" placeholder="Tytuł zadania...">
-            <textarea id="task-desc" placeholder="Instrukcje / Wskazówki..." style="width:100%; height:80px; background:#05070a; color:white; border:1px solid #30363d; border-radius:6px; padding:10px; margin-bottom:15px; font-family:inherit;"></textarea>
+    <nav class="nav-rail">
+        <button class="nav-item active" id="nav-monitor" onclick="switchView('monitor')">
+            <span class="nav-icon">📊</span>
+            <span>Monitor</span>
+        </button>
+        <button class="nav-item" id="nav-map" onclick="switchView('map')">
+            <span class="nav-icon">🗺️</span>
+            <span>Mapa</span>
+        </button>
+        <button class="nav-item" id="nav-gallery" onclick="switchView('gallery')">
+            <span class="nav-icon">🖼️</span>
+            <span>Galeria</span>
+        </button>
+        <button class="nav-item" id="nav-settings" onclick="switchView('settings')">
+            <span class="nav-icon">⚙️</span>
+            <span>Ustawienia</span>
+        </button>
+        <div style="flex:1"></div>
+        <button class="nav-item" onclick="logout()">
+            <span class="nav-icon">🚪</span>
+            <span>Logout</span>
+        </button>
+    </nav>
 
-            <label>Wzór (.xlsx) do oceny</label>
-            <input type="file" id="task-template" accept=".xlsx" style="font-size:0.7rem;">
+    <div class="main-container">
+        <header>
+            <div class="logo">EDU<span>TRACK</span> PRO v1.2</div>
+            <div class="header-controls">
+                <span id="user-display" style="font-size: 12px; color: var(--teams-text-secondary)"></span>
+                <div class="theme-toggle" onclick="toggleTheme()"></div>
+            </div>
+        </header>
 
-            <select id="task-type">
-                <option value="online">Tryb Online (Wbudowany arkusz)</option>
-                <option value="offline">Tryb Lokalny (MS Excel)</option>
-            </select>
-            <button class="btn btn-primary" onclick="startGlobalTask()">Wypchnij Zadanie</button>
+        <!-- Monitoring View -->
+        <div id="monitor" class="view-container active">
+            <aside class="task-sidebar">
+                <div class="section-title">Zarządzanie Egzaminem</div>
+                <input id="task-title" class="teams-input" type="text" placeholder="Tytuł zadania (np. INF.03)">
+                <textarea id="task-desc" class="teams-input teams-textarea" placeholder="Opis zadania i instrukcje..."></textarea>
+
+                <div class="section-title">Szablon Oceny (.xlsx)</div>
+                <input type="file" id="task-template" class="teams-input" accept=".xlsx">
+
+                <button class="btn-teams" onclick="startGlobalTask()">Wypchnij Zadanie</button>
+                <button class="btn-teams btn-outline" onclick="generateGeneralReport()">Generuj Raport Klasowy</button>
+
+                <div style="margin-top:20px">
+                    <div class="section-title">Informacje o Nauczycielu</div>
+                    <div id="teacher-info" style="font-size: 12px; line-height: 1.6">
+                        Użytkownik: <b id="user-name">-</b><br>
+                        Wydział: <b id="user-dept" style="color:var(--teams-purple)">-</b>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="main-content">
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-active">0</span>
+                        <span class="stat-label">Aktywni</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-avg-score">0%</span>
+                        <span class="stat-label">Śr. Wynik</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-alerts" style="color:var(--danger)">0</span>
+                        <span class="stat-label">Alerty</span>
+                    </div>
+                </div>
+
+                <div class="grid-view" id="student-grid">
+                    <!-- Student cards inject here -->
+                </div>
+            </main>
+
+            <aside class="activity-feed">
+                <div class="section-title">Ostatnia Aktywność</div>
+                <div class="feed-container" id="feed">
+                    <!-- Activity logs inject here -->
+                </div>
+            </aside>
         </div>
 
+        <!-- Map View -->
         <div id="map" class="view-container">
             <div class="map-view">
                 <div class="classroom-grid" id="map-grid"></div>
             </div>
         </div>
 
-        <div id="chat" class="view-container"><div style="padding:40px"><h2>Moduł Czatu</h2><p>Wkrótce...</p></div></div>
-        <div id="settings" class="view-container"><div style="padding:40px"><h2>Ustawienia</h2><p>v1.2.0-PRO</p></div></div>
+        <!-- Gallery View -->
+        <div id="gallery" class="view-container">
+            <div class="gallery-view" id="gallery-grid"></div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings" class="view-container">
+            <div style="padding:40px">
+                <h2>Ustawienia Systemu</h2>
+                <p>Wersja: 1.2.0-PRO (Build 2025)</p>
+                <hr style="border-color: var(--teams-border)">
+                <p>EduTrack Pro zapewnia pełną kontrolę nad procesem egzaminacyjnym w szkołach technicznych.</p>
+            </div>
+        </div>
     </div>
 
     <div id="modal" onclick="this.style.display='none'"><img id="modal-img"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- Authentication Check ---
         const token = localStorage.getItem('edutrack_token');
         const userData = JSON.parse(localStorage.getItem('edutrack_user') || '{}');
 
-        if (!token) {
-            window.location.href = '/login';
-        }
+        if (!token) window.location.href = '/login';
 
         document.getElementById('user-name').innerText = userData.username || 'Unknown';
         document.getElementById('user-dept').innerText = userData.department || 'General';
+        document.getElementById('user-display').innerText = userData.username;
 
-        function logout() {
-            localStorage.removeItem('edutrack_token');
-            localStorage.removeItem('edutrack_user');
-            window.location.href = '/login';
-        }
-
-        const socket = io({
-            auth: { token: token } // Alternative: handle on 'connect'
-        });
-
+        const socket = io({ auth: { token: token } });
         socket.on('connect', () => {
             socket.emit('teacher-auth', token);
+            log("Połączono z serwerem.");
         });
 
-        const grid = document.getElementById('grid');
-        const mapGrid = document.getElementById('map-grid');
-        const feed = document.getElementById('feed');
         const students = {};
 
         function log(msg) {
+            const feed = document.getElementById('feed');
             const div = document.createElement('div');
             div.className = 'feed-item';
-            div.innerHTML = `<span class="feed-time">${new Date().toLocaleTimeString()}</span><br><span>${msg}</span>`;
+            div.innerHTML = `<span class="feed-time">${new Date().toLocaleTimeString()}</span><br><span>${escapeHtml(msg)}</span>`;
             feed.prepend(div);
         }
 
@@ -397,65 +464,6 @@
         }
         if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
 
-        // --- Initial Data Load ---
-        async function loadStudents() {
-            try {
-                const res = await fetch('/api/students', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.status === 401 || res.status === 400) logout();
-                const studentsData = await res.json();
-                studentsData.forEach(s => {
-                    updateStudentCard({ id: s.hostname, ...s });
-                });
-            } catch (err) { log('Error loading students'); }
-        }
-        loadStudents();
-
-        socket.on('teacher-update', (data) => {
-            updateStudentCard(data);
-        });
-
-        function updateStudentCard(data) {
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            if (!students[id]) {
-                const card = document.createElement('div');
-                card.id = `card-${id}`;
-                card.className = 'card';
-                grid.appendChild(card);
-                students[id] = true;
-                log(`Device connected: ${escapeHtml(data.id)}`);
-            }
-            
-            const card = document.getElementById(`card-${id}`);
-            const safeId = escapeHtml(data.id);
-            const safeScore = escapeHtml(data.lastScore || '0/0');
-            const safeAlerts = escapeHtml(String(data.alerts || 0));
-            const safeWindowsCount = escapeHtml(String(data.windows ? data.windows.length : 0));
-            const lastWinTitle = data.windows && data.windows[0] ? data.windows[0].title : 'Brak';
-            const safeLastWinTitle = escapeHtml(lastWinTitle.substring(0, 25));
-            const fullWinTitle = escapeHtml(lastWinTitle);
-
-            card.innerHTML = `
-                <div class="card-header">
-                    <strong style="font-size:1.1rem">🖥️ ${safeId}</strong>
-                    <div class="status-dot"></div>
-                </div>
-                <img id="screen-${id}" class="screen-thumb" onclick="openModal(this.src)" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect width='100' height='50' fill='%23000'/%3E%3C/svg%3E">
-                <div class="data-row"><span>Wynik Excel:</span><b>${safeScore}</b></div>
-                <div class="data-row"><span>Alerty:</span><b style="color:var(--danger)">${safeAlerts}</b></div>
-                <div class="data-row"><span>Okna:</span><b>${safeWindowsCount} aktywnych</b></div>
-                <div class="data-row"><span>Ostatnie okno:</span><b title="${fullWinTitle}">${safeLastWinTitle}...</b></div>
-                <div id="audit-${id}" style="font-size:0.6rem; color:#8b949e; margin-top:10px; border-top:1px solid #30363d; padding-top:10px;">
-                    Czekam na audyt techniczny...
-                </div>
-                <div style="margin-top:15px; display:flex; gap:10px;">
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${safeId}')">MSG</button>
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="remoteLock('${safeId}')">LOCK</button>
-                </div>
-            `;
-        }
-
         function switchView(viewId) {
             document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -463,14 +471,39 @@
             document.getElementById('nav-' + viewId).classList.add('active');
         }
 
-        function getStudentLevel(score) {
-            if(!score || !score.toString().includes('/')) return 1;
-            const [got, max] = score.split('/').map(Number);
-            return Math.floor(((got / (max || 1)) * 5)) + 1;
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                data.forEach(s => {
+                    students[s.hostname] = { data: s, lastImg: '' };
+                });
+                updateUI();
+            } catch (err) { log('Błąd ładowania listy uczniów.'); }
         }
+        loadStudents();
 
-        // --- KLUCZOWA ZMIANA: INTELIGENTNA AKTUALIZACJA ---
-        function updateUI() {
+        socket.on('teacher-update', (data) => {
+            if (!students[data.id]) {
+                students[data.id] = { data: data, lastImg: '' };
+                log(`Uczeń połączony: ${data.id}`);
+            } else {
+                students[data.id].data = { ...students[data.id].data, ...data };
+            }
+            updateIndividualStudent(data.id);
+            updateGlobalStats();
+        });
+
+        socket.on('teacher-screenshot', (data) => {
+            if(students[data.id]) {
+                students[data.id].lastImg = `data:image/jpeg;base64,${data.img}`;
+                updateIndividualScreenshot(data.id);
+            }
+        });
+
+        socket.on('teacher-alert', (data) => log(`🚨 ALERT (${data.id}): ${data.msg}`));
+
+        function updateGlobalStats() {
             const keys = Object.keys(students);
             document.getElementById('stat-active').innerText = keys.length;
 
@@ -483,6 +516,121 @@
                 const data = s.data || {};
                 totalAlerts += (data.alerts || 0);
 
+                const scoreText = data.lastScore || '0/0';
+                if(scoreText.includes('/')) {
+                    const [got, max] = scoreText.split('/').map(Number);
+                    if(max > 0) {
+                        totalScorePercent += (got / max);
+                        scoredCount++;
+                    }
+                }
+            });
+
+            const avg = scoredCount > 0 ? Math.round((totalScorePercent / scoredCount) * 100) : 0;
+            document.getElementById('stat-avg-score').innerText = avg + '%';
+            document.getElementById('stat-alerts').innerText = totalAlerts;
+        }
+
+        function updateIndividualStudent(id) {
+            const grid = document.getElementById('student-grid');
+            const mapGrid = document.getElementById('map-grid');
+
+            const s = students[id];
+            const data = s.data || {};
+            const scoreText = data.lastScore || '0/0';
+
+            const safeIdDom = sanitizeIdForDom(id);
+            const safeIdVal = escapeHtml(id);
+            const jsEscapedId = id.replace(/'/g, "\\'");
+
+            // Grid View Card
+            let card = document.getElementById(`card-${safeIdDom}`);
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `card-${safeIdDom}`;
+                card.className = 'student-card';
+                grid.appendChild(card);
+            }
+
+            const isTop = scoreText.startsWith('10/10') || scoreText.startsWith('100/100');
+            const isClean = (data.alerts === 0);
+            
+            let level = 1;
+            if(scoreText.includes('/')) {
+                const [got, max] = scoreText.split('/').map(Number);
+                level = Math.max(1, Math.min(5, Math.floor((got / (max || 1)) * 5)));
+            }
+
+            const safeScore = escapeHtml(scoreText);
+
+            card.innerHTML = `
+                <div class="level-tag">LVL ${level}</div>
+                <div class="card-badge-container">
+                    ${isTop ? '<div class="badge gold" title="Top">🏆</div>' : ''}
+                    ${isClean ? '<div class="badge clean" title="Clean">🛡️</div>' : ''}
+                </div>
+                <img id="img-card-${safeIdDom}" class="card-preview" onclick="openModal(this.src)" src="${s.lastImg || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'50\'%3E%3Crect width=\'100\' height=\'50\' fill=\'%23000\'/%3E%3C/svg%3E'}">
+                <div class="card-info">
+                    <div class="student-name"><div class="status-badge" style="background:${data.online === false ? '#666' : 'var(--success)'}"></div> ${safeIdVal}</div>
+                    <div class="data-row"><span>Wynik:</span><b>${safeScore}</b></div>
+                    <div class="data-row"><span>Alerty:</span><b style="color:${data.alerts > 0 ? 'var(--danger)' : 'inherit'}">${data.alerts}</b></div>
+                </div>
+                <div class="card-actions">
+                    <button class="mini-btn btn-outline" onclick="sendDirectMessage('${jsEscapedId}')">MSG</button>
+                    <button class="mini-btn btn-outline" onclick="window.open('/api/report/' + encodeURIComponent('${jsEscapedId}') + '?token=' + encodeURIComponent('${token}'))">PDF</button>
+                    <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${jsEscapedId}')">LOCK</button>
+                </div>
+            `;
+
+            // Map View Desk
+            let desk = document.getElementById(`desk-${safeIdDom}`);
+            if (!desk) {
+                desk = document.createElement('div');
+                desk.id = `desk-${safeIdDom}`;
+                desk.className = 'map-desk';
+                mapGrid.appendChild(desk);
+            }
+            desk.innerHTML = `
+                <img id="img-map-${safeIdDom}" class="screen-small" src="${s.lastImg || ''}">
+                <div class="desk-label">${safeIdVal}</div>
+                ${data.alerts > 0 ? '<div style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; color:white">!</div>' : ''}
+            `;
+        }
+
+        function updateIndividualScreenshot(id) {
+            const s = students[id];
+            const safeIdDom = sanitizeIdForDom(id);
+            const safeIdVal = escapeHtml(id);
+
+            const cardImg = document.getElementById(`img-card-${safeIdDom}`);
+            if(cardImg) cardImg.src = s.lastImg;
+
+            const mapImg = document.getElementById(`img-map-${safeIdDom}`);
+            if(mapImg) mapImg.src = s.lastImg;
+
+            const galleryGrid = document.getElementById('gallery-grid');
+            let gallItem = document.getElementById(`gall-${safeIdDom}`);
+            if(!gallItem) {
+                gallItem = document.createElement('div');
+                gallItem.id = `gall-${safeIdDom}`;
+                gallItem.className = 'gallery-item';
+                gallItem.onclick = () => openModal(s.lastImg);
+                galleryGrid.appendChild(gallItem);
+            }
+            gallItem.innerHTML = `<img src="${s.lastImg}"><div class="gallery-label">${safeIdVal}</div>`;
+        }
+
+        function updateUI() {
+            const keys = Object.keys(students);
+            keys.forEach(id => updateIndividualStudent(id));
+            updateGlobalStats();
+        }
+
+        async function startGlobalTask() {
+            const title = document.getElementById('task-title').value;
+            const desc = document.getElementById('task-desc').value;
+            const templateFile = document.getElementById('task-template').files[0];
+
             if (templateFile) {
                 const formData = new FormData();
                 formData.append('template', templateFile);
@@ -491,89 +639,52 @@
                     body: formData,
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                log("Template uploaded successfully.");
+                log("Szablon wysłany na serwer.");
             }
 
-                const level = getStudentLevel(scoreText);
-                const isClean = (data.alerts === 0);
-                const isTop = scoreText.toString().startsWith('10/10') || scoreText.toString().startsWith('100/100');
-
-                // Aktualizacja lub Tworzenie karty w Grid
-                let card = document.getElementById(`card-${id}`);
-                if (!card) {
-                    card = document.createElement('div');
-                    card.id = `card-${id}`;
-                    card.className = 'student-card';
-                    grid.appendChild(card);
-                }
-
-                card.innerHTML = `
-                    <div class="level-tag">LVL ${level}</div>
-                    <div class="card-badge-container">
-                        ${isTop ? '<div class="badge gold" title="Top">🏆</div>' : ''}
-                        ${isClean ? '<div class="badge clean" title="Clean">🛡️</div>' : ''}
-                    </div>
-                    <img class="card-preview" onclick="openModal(this.src)" src="${s.lastImg || ''}">
-                    <div class="card-info">
-                        <div class="student-name"><div class="status-badge"></div> ${id}</div>
-                        <div class="data-row"><span>Wynik:</span><b>${scoreText}</b></div>
-                        <div class="data-row"><span>Alerty:</span><b style="color:${data.alerts > 0 ? 'var(--danger)' : 'inherit'}">${data.alerts}</b></div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="mini-btn btn-outline" onclick="sendDirectMessage('${id}')">MSG</button>
-                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${id}')">LOCK</button>
-                    </div>
-                `;
-
-                // Aktualizacja lub Tworzenie biurka na Mapie
-                let desk = document.getElementById(`desk-${id}`);
-                if (!desk) {
-                    desk = document.createElement('div');
-                    desk.id = `desk-${id}`;
-                    desk.className = 'map-desk';
-                    mapGrid.appendChild(desk);
-                }
-                desk.innerHTML = `
-                    <img class="screen-small" src="${s.lastImg || ''}">
-                    <div class="desk-label">${id}</div>
-                    ${data.alerts > 0 ? '<div style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; color:white">!</div>' : ''}
-                `;
-            });
-
-            const avg = scoredCount > 0 ? Math.round((totalScorePercent / scoredCount) * 100) : 0;
-            document.getElementById('stat-avg-score').innerText = avg + '%';
-            document.getElementById('stat-alerts').innerText = totalAlerts;
+            socket.emit('start-task', { title, description: desc });
+            log(`Wypchnięto zadanie: ${title}`);
         }
 
-        socket.on('teacher-update', (data) => {
-            if (!students[data.id]) {
-                students[data.id] = { data: data, lastImg: '' };
-                log(`Uczeń połączony: ${data.id}`);
-            } else {
-                students[data.id].data = data;
-            }
-            updateUI();
-        });
-
-        socket.on('teacher-screenshot', (data) => {
-            if(students[data.id]) {
-                students[data.id].lastImg = `data:image/jpeg;base64,${data.img}`;
-                updateUI();
-            }
-        });
-
-        socket.on('teacher-alert', (data) => log(`🚨 ${data.id}: ${data.msg}`));
-
-        function openModal(src) { if(src) { document.getElementById('modal-img').src = src; document.getElementById('modal').style.display = 'flex'; } }
-        function startGlobalTask() { 
-            socket.emit('start-task', { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value }); 
-            log("Wypchnięto zadanie do wszystkich."); 
+        function sendDirectMessage(id) {
+            const msg = prompt("Wiadomość do " + id + ":");
+            if(msg) socket.emit('teacher-send-msg', { targetId: id, msg });
         }
-        function sendDirectMessage(id) { const msg = prompt("Wiadomość do " + id + ":"); if(msg) socket.emit('teacher-send-msg', { targetId: id, msg }); }
-        function remoteLock(id) { if(confirm("Zablokować " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' }); }
 
-        window.addEventListener('keydown', (e) => { if(e.ctrlKey && e.key === 'Enter') startGlobalTask(); });
-        log("EduTrack Pro v1.2 Gotowy.");
+        function remoteLock(id) {
+            if(confirm("Zablokować " + id + "?")) {
+                socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' });
+                log(`Zablokowano: ${id}`);
+            }
+        }
+
+        function openModal(src) {
+            if(src) {
+                document.getElementById('modal-img').src = src;
+                document.getElementById('modal').style.display = 'flex';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('edutrack_token');
+            localStorage.removeItem('edutrack_user');
+            window.location.href = '/login';
+        }
+
+        function generateGeneralReport() {
+            window.open(`/api/report-all?token=${encodeURIComponent(token)}`);
+        }
+
+        function escapeHtml(text) {
+            if (typeof text !== 'string') return text;
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function sanitizeIdForDom(id) {
+            return id.replace(/[^a-zA-Z0-9]/g, '_');
+        }
     </script>
 </body>
 </html>
