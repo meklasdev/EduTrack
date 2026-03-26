@@ -15,7 +15,10 @@ require('dotenv').config();
 
 const app = express();
 const httpServer = http.createServer(app);
-const io = new Server(httpServer, { cors: { origin: '*', maxHttpBufferSize: 1e7 } });
+const io = new Server(httpServer, {
+    cors: { origin: '*', maxHttpBufferSize: 1e7 },
+    compression: true
+});
 
 // Redis setup for Socket.io and Sessions
 const redisClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
@@ -34,6 +37,9 @@ const excelChecker = new ExcelLogicChecker();
 const prisma = new PrismaClient();
 const PORT = 8080;
 const ADMIN_PASS = 'edutrack2025';
+const isHeadless = process.argv.includes('--headless');
+
+if (isHeadless) console.log('[EduTrack] Starting in HEADLESS mode.');
 
 // Authentication
 const authRoutes = require('./src/routes/auth');
@@ -51,6 +57,7 @@ const migrateData = require('./src/migrate');
 migrateData().then(() => console.log('[EduTrack] Data migration check finished.'));
 
 const ExcelJS = require('exceljs');
+const PDFDocument = require('pdfkit');
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(fileUpload());
@@ -84,6 +91,30 @@ app.use('/api/auth', authRoutes);
 
 app.get('/api/current-task', (req, res) => res.json(currentTask));
 
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        const students = await prisma.student.findMany({
+            select: { hostname: true, lastScore: true, alerts: true }
+        });
+
+        const leaderboard = students.map(s => {
+            const scoreMatch = s.lastScore ? s.lastScore.match(/(\d+)\/(\d+)/) : null;
+            const points = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
+            const penalty = s.alerts * 0.5;
+            return {
+                hostname: s.hostname,
+                points: Math.max(0, points - penalty),
+                rawScore: s.lastScore || '0/0',
+                alerts: s.alerts
+            };
+        }).sort((a, b) => b.points - a.points);
+
+        res.json(leaderboard);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
+
 app.get('/api/students', authMiddleware, async (req, res) => {
     try {
         const { departmentId } = req.user;
@@ -108,6 +139,66 @@ app.post('/api/upload-template', authMiddleware, async (req, res) => {
     const templatePath = path.join(__dirname, 'test-data/template.xlsx');
     await req.files.template.mv(templatePath);
     res.send('Template updated.');
+});
+
+app.get('/api/report/:hostname/pdf', authMiddleware, async (req, res) => {
+    try {
+        const student = await prisma.student.findUnique({
+            where: { hostname: req.params.hostname },
+            include: { windows: true, processes: true }
+        });
+        if (!student) return res.status(404).send('Student not found');
+
+        const doc = new PDFDocument();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=report_${student.hostname}.pdf`);
+        doc.pipe(res);
+
+        doc.fontSize(20).text(`CHEAT EVIDENCE REPORT: ${student.hostname}`, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(12).text(`Generated at: ${new Date().toLocaleString()}`);
+        doc.text(`Last Seen: ${student.lastSeen.toLocaleString()}`);
+        doc.text(`Total Alerts: ${student.alerts}`);
+        doc.text(`Final Score: ${student.lastScore || 'N/A'}`);
+        doc.moveDown();
+
+        doc.fontSize(16).text('Active Windows Evidence:');
+        student.windows.forEach(w => {
+            doc.fontSize(10).text(`- ${w.title} (App: ${w.app || 'N/A'})`);
+        });
+
+        doc.end();
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
+
+app.get('/api/certificate/:hostname', authMiddleware, async (req, res) => {
+    try {
+        const student = await prisma.student.findUnique({ where: { hostname: req.params.hostname } });
+        if (!student) return res.status(404).send('Student not found');
+
+        const scoreMatch = student.lastScore ? student.lastScore.match(/(\d+)\/(\d+)/) : null;
+        if (!scoreMatch || parseInt(scoreMatch[1]) < (parseInt(scoreMatch[2]) * 0.5)) {
+            return res.status(400).send('Student did not pass.');
+        }
+
+        const doc = new PDFDocument({ layout: 'landscape' });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=cert_${student.hostname}.pdf`);
+        doc.pipe(res);
+
+        doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).stroke();
+        doc.fontSize(40).text('CERTIFICATE OF ACHIEVEMENT', { align: 'center' }).moveDown();
+        doc.fontSize(20).text('This is to certify that', { align: 'center' }).moveDown();
+        doc.fontSize(30).text(student.hostname, { align: 'center', underline: true }).moveDown();
+        doc.fontSize(20).text(`Has successfully passed the exam with score: ${student.lastScore}`, { align: 'center' }).moveDown();
+        doc.fontSize(15).text(`Date: ${new Date().toLocaleDateString()}`, { align: 'right' });
+
+        doc.end();
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
 });
 
 app.get('/api/report/:hostname', authMiddleware, async (req, res) => {
@@ -158,6 +249,23 @@ async function luckysheetToExcel(jsonStr) {
     });
     return workbook;
 }
+
+app.post('/api/detect-plagiarism', authMiddleware, async (req, res) => {
+    try {
+        const { studentA, studentB } = req.body;
+        const fileA = path.join(__dirname, `test-data/plag_${studentA}.xlsx`);
+        const fileB = path.join(__dirname, `test-data/plag_${studentB}.xlsx`);
+
+        if (!fs.existsSync(fileA) || !fs.existsSync(fileB)) {
+            return res.status(404).send({ error: "One or both student files not found for plagiarism check." });
+        }
+
+        const report = await excelChecker.detectPlagiarism(fileA, fileB);
+        res.json(report);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
 
 app.post('/api/check-excel', async (req, res) => {
     const studentPath = path.join(__dirname, 'test-data/temp_upload.xlsx');
@@ -332,5 +440,7 @@ io.on('connection', (socket) => {
     });
 });
 
-bonjour.publish({ name: 'EduTrack Central Server', type: 'http', port: PORT });
-httpServer.listen(PORT, () => console.log(`[EduTrack] Server live on port ${PORT}`));
+if (!isHeadless) {
+    bonjour.publish({ name: 'EduTrack Central Server', type: 'http', port: PORT });
+}
+httpServer.listen(PORT, () => console.log(`[EduTrack] Server live on port ${PORT}${isHeadless ? ' (Headless)' : ''}`));
