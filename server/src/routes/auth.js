@@ -7,9 +7,9 @@ const prisma = new PrismaClient();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'edutrack-jwt-secret-key-2025';
 
-// Register a new teacher (and create department/organization if they don't exist)
+// Register a new teacher (and create department if it doesn't exist)
 router.post('/register', async (req, res) => {
-    const { username, password, departmentName, organizationName } = req.body;
+    const { username, password, departmentName } = req.body;
 
     if (!username || !password || !departmentName) {
         return res.status(400).json({ error: 'Username, password, and department name are required.' });
@@ -18,26 +18,11 @@ router.post('/register', async (req, res) => {
     try {
         const passwordHash = await bcrypt.hash(password, 10);
 
-        let organizationId = null;
-        if (organizationName) {
-            const org = await prisma.organization.upsert({
-                where: { name: organizationName },
-                update: {},
-                create: { name: organizationName }
-            });
-            organizationId = org.id;
-        }
-
         // Find or create department
-        const existingDept = await prisma.department.findUnique({ where: { name: departmentName } });
-        if (existingDept && existingDept.organizationId !== organizationId) {
-            return res.status(403).json({ error: 'Department already belongs to another organization.' });
-        }
-
         const department = await prisma.department.upsert({
             where: { name: departmentName },
             update: {},
-            create: { name: departmentName, organizationId: organizationId }
+            create: { name: departmentName }
         });
 
         const teacher = await prisma.teacher.create({
@@ -64,11 +49,7 @@ router.post('/login', async (req, res) => {
     try {
         const teacher = await prisma.teacher.findUnique({
             where: { username },
-            include: {
-                department: {
-                    include: { organization: true }
-                }
-            }
+            include: { department: true }
         });
 
         if (!teacher || !(await bcrypt.compare(password, teacher.passwordHash))) {
@@ -76,24 +57,12 @@ router.post('/login', async (req, res) => {
         }
 
         const token = jwt.sign(
-            {
-                id: teacher.id,
-                username: teacher.username,
-                departmentId: teacher.departmentId,
-                organizationId: teacher.department.organizationId
-            },
+            { id: teacher.id, username: teacher.username, departmentId: teacher.departmentId },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        res.json({
-            token,
-            teacher: {
-                username: teacher.username,
-                department: teacher.department.name,
-                organization: teacher.department.organization?.name || 'Local'
-            }
-        });
+        res.json({ token, teacher: { username: teacher.username, department: teacher.department.name } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
