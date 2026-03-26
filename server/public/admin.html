@@ -208,7 +208,7 @@
             align-content: start;
         }
 
-        /* 🏢 Classroom Map View (3D-ish) */
+        /* 🏢 Classroom Map View */
         .map-view {
             perspective: 1200px;
             display: flex;
@@ -248,7 +248,7 @@
         .map-desk .screen-small { width: 140px; height: 80px; background: #000; border: 1px solid #333; margin-top: 5px; object-fit: cover; }
         .desk-label { font-size: 10px; font-weight: 700; margin-top: 5px; color: var(--teams-text-secondary); }
 
-        /* Student Card Enhancements (Gamification) */
+        /* Student Card Enhancements */
         .student-card {
             background: var(--teams-card-bg);
             border-radius: 8px;
@@ -260,7 +260,6 @@
         .student-card:hover { border-color: var(--teams-purple); transform: translateY(-2px); }
         .card-preview { width: 100%; aspect-ratio: 16/9; background: #111; display: block; object-fit: cover; cursor: pointer; }
 
-        /* Badges & Levels */
         .card-badge-container { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; pointer-events: none; }
         .badge {
             width: 22px;
@@ -275,7 +274,6 @@
             border: 1px solid var(--teams-border);
         }
         .badge.gold { color: var(--gold); border-color: var(--gold); }
-        .badge.silver { color: var(--silver); border-color: var(--silver); }
         .badge.clean { color: var(--success); border-color: var(--success); }
 
         .level-tag {
@@ -317,20 +315,20 @@
     </style>
 </head>
 <body>
-    <nav class="nav-rail" role="navigation" aria-label="Menu główne">
-        <button class="nav-item active" onclick="switchView('dashboard')" aria-label="Pulpit nawigacyjny" id="nav-dashboard">
+    <nav class="nav-rail">
+        <button class="nav-item active" onclick="switchView('dashboard')" id="nav-dashboard">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
             Dashboard
         </button>
-        <button class="nav-item" onclick="switchView('map')" aria-label="Mapa sali" id="nav-map">
+        <button class="nav-item" onclick="switchView('map')" id="nav-map">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Mapa Sali
         </button>
-        <button class="nav-item" onclick="switchView('chat')" aria-label="Czat" id="nav-chat">
+        <button class="nav-item" onclick="switchView('chat')" id="nav-chat">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             Czat
         </button>
-        <button class="nav-item" onclick="switchView('settings')" aria-label="Ustawienia" style="margin-top: auto; margin-bottom: 20px;" id="nav-settings">
+        <button class="nav-item" onclick="switchView('settings')" style="margin-top: auto; margin-bottom: 20px;" id="nav-settings">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Settings
         </button>
@@ -341,22 +339,18 @@
             <div class="logo">EDU<span>TRACK</span> PRO | v1.2</div>
             <div class="header-controls">
                 <div id="connection-status" style="font-size: 11px; color: var(--success); font-weight: 600;">● SYSTEM ONLINE</div>
-                <div class="theme-toggle" onclick="toggleTheme()" aria-label="Przełącz tryb jasny/ciemny"></div>
+                <div class="theme-toggle" onclick="toggleTheme()"></div>
             </div>
         </header>
 
-        <!-- DASHBOARD VIEW -->
         <div id="dashboard" class="view-container active">
             <aside class="task-sidebar">
                 <div class="section-title">Konfiguracja Egzaminu</div>
-                <input id="task-title" class="teams-input" type="text" placeholder="Tytuł zadania..." aria-label="Tytuł zadania">
-                <textarea id="task-desc" class="teams-input teams-textarea" placeholder="Instrukcje dla grupy..." aria-label="Opis zadania"></textarea>
+                <input id="task-title" class="teams-input" type="text" placeholder="Tytuł zadania...">
+                <textarea id="task-desc" class="teams-input teams-textarea" placeholder="Instrukcje dla grupy..."></textarea>
                 <div class="section-title" style="margin-top: 10px;">Szablon (.xlsx)</div>
                 <input type="file" id="task-template" accept=".xlsx" style="font-size: 11px; margin-bottom: 15px;">
                 <button class="btn-teams" onclick="startGlobalTask()">Wypchnij Zadanie</button>
-
-                <div class="section-title" style="margin-top: 30px;">Opcje Pomocy</div>
-                <button class="btn-teams btn-outline" style="width:100%" onclick="popoutDoc()">Otwórz Dokumentację (Pop-out)</button>
             </aside>
 
             <main class="main-content">
@@ -378,18 +372,14 @@
             </aside>
         </div>
 
-        <!-- MAP VIEW -->
         <div id="map" class="view-container">
             <div class="map-view">
-                <div class="classroom-grid" id="map-grid">
-                    <!-- Map desks will appear here -->
-                </div>
+                <div class="classroom-grid" id="map-grid"></div>
             </div>
         </div>
 
-        <!-- PLACEHOLDERS -->
         <div id="chat" class="view-container"><div style="padding:40px"><h2>Moduł Czatu</h2><p>Wkrótce...</p></div></div>
-        <div id="settings" class="view-container"><div style="padding:40px"><h2>Ustawienia Systemu</h2><p>v1.2.0-PRO-FINAL</p></div></div>
+        <div id="settings" class="view-container"><div style="padding:40px"><h2>Ustawienia</h2><p>v1.2.0-PRO</p></div></div>
     </div>
 
     <div id="modal" onclick="this.style.display='none'"><img id="modal-img"></div>
@@ -402,7 +392,7 @@
         const feed = document.getElementById('feed');
         const students = {};
 
-        function log(msg, type = 'info') {
+        function log(msg) {
             const div = document.createElement('div');
             div.className = 'feed-item';
             div.innerHTML = `<span class="feed-time">${new Date().toLocaleTimeString()}</span><br><span>${msg}</span>`;
@@ -432,14 +422,13 @@
         }
 
         function getStudentLevel(score) {
-            if(!score || !score.includes('/')) return 1;
+            if(!score || !score.toString().includes('/')) return 1;
             const [got, max] = score.split('/').map(Number);
-            return Math.floor((got / (max || 1)) * 5) + 1;
+            return Math.floor(((got / (max || 1)) * 5)) + 1;
         }
 
+        // --- KLUCZOWA ZMIANA: INTELIGENTNA AKTUALIZACJA ---
         function updateUI() {
-            grid.innerHTML = '';
-            mapGrid.innerHTML = '';
             const keys = Object.keys(students);
             document.getElementById('stat-active').innerText = keys.length;
 
@@ -449,50 +438,59 @@
 
             keys.forEach(id => {
                 const s = students[id];
-                const data = s.data;
+                const data = s.data || {};
                 totalAlerts += (data.alerts || 0);
 
                 let scoreText = data.lastScore || '0/0';
-                if(scoreText.includes('/')) {
+                if(scoreText.toString().includes('/')) {
                     const [got, max] = scoreText.split('/').map(Number);
                     if(max > 0) { totalScorePercent += (got/max); scoredCount++; }
                 }
 
                 const level = getStudentLevel(scoreText);
                 const isClean = (data.alerts === 0);
-                const isTop = scoreText.startsWith('10/10') || scoreText.startsWith('100/100');
+                const isTop = scoreText.toString().startsWith('10/10') || scoreText.toString().startsWith('100/100');
 
-                // Grid Card
-                const card = document.createElement('div');
-                card.className = 'student-card';
+                // Aktualizacja lub Tworzenie karty w Grid
+                let card = document.getElementById(`card-${id}`);
+                if (!card) {
+                    card = document.createElement('div');
+                    card.id = `card-${id}`;
+                    card.className = 'student-card';
+                    grid.appendChild(card);
+                }
+
                 card.innerHTML = `
                     <div class="level-tag">LVL ${level}</div>
                     <div class="card-badge-container">
-                        ${isTop ? '<div class="badge gold" title="Top Performer">🏆</div>' : ''}
-                        ${isClean ? '<div class="badge clean" title="Czyste konto">🛡️</div>' : ''}
+                        ${isTop ? '<div class="badge gold" title="Top">🏆</div>' : ''}
+                        ${isClean ? '<div class="badge clean" title="Clean">🛡️</div>' : ''}
                     </div>
                     <img class="card-preview" onclick="openModal(this.src)" src="${s.lastImg || ''}">
                     <div class="card-info">
-                        <div class="student-name"><div class="status-badge"></div> ${data.id}</div>
+                        <div class="student-name"><div class="status-badge"></div> ${id}</div>
                         <div class="data-row"><span>Wynik:</span><b>${scoreText}</b></div>
                         <div class="data-row"><span>Alerty:</span><b style="color:${data.alerts > 0 ? 'var(--danger)' : 'inherit'}">${data.alerts}</b></div>
                     </div>
                     <div class="card-actions">
-                        <button class="mini-btn btn-outline" onclick="sendDirectMessage('${data.id}')">MSG</button>
-                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${data.id}')">LOCK</button>
+                        <button class="mini-btn btn-outline" onclick="sendDirectMessage('${id}')">MSG</button>
+                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${id}')">LOCK</button>
                     </div>
                 `;
-                grid.appendChild(card);
 
-                // Map Desk
-                const desk = document.createElement('div');
-                desk.className = 'map-desk';
+                // Aktualizacja lub Tworzenie biurka na Mapie
+                let desk = document.getElementById(`desk-${id}`);
+                if (!desk) {
+                    desk = document.createElement('div');
+                    desk.id = `desk-${id}`;
+                    desk.className = 'map-desk';
+                    mapGrid.appendChild(desk);
+                }
                 desk.innerHTML = `
                     <img class="screen-small" src="${s.lastImg || ''}">
-                    <div class="desk-label">${data.id}</div>
+                    <div class="desk-label">${id}</div>
                     ${data.alerts > 0 ? '<div style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; color:white">!</div>' : ''}
                 `;
-                mapGrid.appendChild(desk);
             });
 
             const avg = scoredCount > 0 ? Math.round((totalScorePercent / scoredCount) * 100) : 0;
@@ -502,7 +500,7 @@
 
         socket.on('teacher-update', (data) => {
             if (!students[data.id]) {
-                students[data.id] = { data: data };
+                students[data.id] = { data: data, lastImg: '' };
                 log(`Uczeń połączony: ${data.id}`);
             } else {
                 students[data.id].data = data;
@@ -517,16 +515,18 @@
             }
         });
 
-        socket.on('teacher-alert', (data) => log(`🚨 ${data.id}: ${data.msg}`, 'alert'));
+        socket.on('teacher-alert', (data) => log(`🚨 ${data.id}: ${data.msg}`));
 
         function openModal(src) { if(src) { document.getElementById('modal-img').src = src; document.getElementById('modal').style.display = 'flex'; } }
-        async function startGlobalTask() { socket.emit('start-task', { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value }); log("Wypchnięto zadanie."); }
-        function sendDirectMessage(id) { const msg = prompt("Wiadomość:"); if(msg) socket.emit('teacher-send-msg', { targetId: id, msg }); }
-        function remoteLock(id) { if(confirm("LOCK " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' }); }
-        function popoutDoc() { alert("Instrukcja: Student może teraz odpiąć dokumentację do nowego okna."); }
+        function startGlobalTask() { 
+            socket.emit('start-task', { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value }); 
+            log("Wypchnięto zadanie do wszystkich."); 
+        }
+        function sendDirectMessage(id) { const msg = prompt("Wiadomość do " + id + ":"); if(msg) socket.emit('teacher-send-msg', { targetId: id, msg }); }
+        function remoteLock(id) { if(confirm("Zablokować " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' }); }
 
         window.addEventListener('keydown', (e) => { if(e.ctrlKey && e.key === 'Enter') startGlobalTask(); });
-        log("EduTrack Pro v1.2 Ready.");
+        log("EduTrack Pro v1.2 Gotowy.");
     </script>
 </body>
 </html>
