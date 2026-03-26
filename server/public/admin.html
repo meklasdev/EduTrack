@@ -149,6 +149,7 @@
             display: flex;
             flex-direction: column;
             padding: 20px;
+            overflow-y: auto;
         }
         .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--teams-text-secondary); margin-bottom: 16px; letter-spacing: 0.5px; }
 
@@ -295,7 +296,7 @@
         .data-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--teams-text-secondary); margin-bottom: 4px; }
         .data-row b { color: var(--teams-text); }
 
-        .card-actions { display: flex; padding: 8px 12px; border-top: 1px solid var(--teams-border); gap: 8px; }
+        .card-actions { display: flex; padding: 8px 12px; border-top: 1px solid var(--teams-border); gap: 8px; flex-wrap: wrap; }
         .mini-btn { flex: 1; padding: 4px; font-size: 10px; text-transform: uppercase; font-weight: 700; border-radius: 2px; border: none; cursor: pointer; }
 
         .activity-feed {
@@ -315,32 +316,73 @@
     </style>
 </head>
 <body>
-    <aside>
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <h1>EDU<span>TRACK</span></h1>
-            <div style="display:flex; gap: 5px;">
-                <button class="btn" style="width:auto; padding:5px 10px; font-size:0.6rem; background:#30363d; color:white;" onclick="toggleTheme()">THEME</button>
-                <button class="btn" style="width:auto; padding:5px 10px; font-size:0.6rem; background:#30363d; color:white;" onclick="logout()">LOGOUT</button>
+    <div class="nav-rail">
+        <button class="nav-item active" id="nav-grid" onclick="switchView('grid')">
+            <svg class="nav-icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Monitoring
+        </button>
+        <button class="nav-item" id="nav-map" onclick="switchView('map')">
+            <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Mapa
+        </button>
+        <button class="nav-item" id="nav-leaderboard" onclick="switchView('leaderboard'); refreshLeaderboard();">
+            <svg class="nav-icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+            Ranking
+        </button>
+        <button class="nav-item" id="nav-marketplace" onclick="switchView('marketplace'); loadMarketplace();">
+            <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+            Market
+        </button>
+        <button class="nav-item" id="nav-settings" onclick="switchView('settings')">
+            <svg class="nav-icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            Ustawienia
+        </button>
+    </div>
+
+    <div class="main-container">
+        <header>
+            <div class="logo">EDU<span>TRACK</span> PRO</div>
+            <div id="user-info" style="font-size:0.75rem; color:var(--teams-text-secondary);">
+                Teacher: <b id="user-name" style="color:var(--teams-text);">-</b> |
+                Org: <b id="user-org" style="color:var(--teams-accent);">-</b>
             </div>
-        </div>
-        <div id="user-info" style="font-size:0.75rem; color:#8b949e; margin-bottom:20px; border-bottom:1px solid #30363d; padding-bottom:15px;">
-            Teacher: <b id="user-name" style="color:white;">-</b><br>
-            Department: <b id="user-dept" style="color:var(--accent);">-</b>
-        </div>
-        
-        <div class="control-group">
-            <label>Zarządzanie Lekcją</label>
-            <input id="task-title" type="text" placeholder="Tytuł zadania...">
-            <textarea id="task-desc" placeholder="Instrukcje / Wskazówki..." style="width:100%; height:80px; background:#05070a; color:white; border:1px solid #30363d; border-radius:6px; padding:10px; margin-bottom:15px; font-family:inherit;"></textarea>
+            <div class="header-controls">
+                <div class="theme-toggle" onclick="toggleTheme()"></div>
+                <button class="btn-teams btn-outline" onclick="logout()">Wyloguj</button>
+            </div>
+        </header>
 
-            <label>Wzór (.xlsx) do oceny</label>
-            <input type="file" id="task-template" accept=".xlsx" style="font-size:0.7rem;">
+        <div class="view-container active" id="grid">
+            <aside class="task-sidebar">
+                <div class="section-title">Aktywne Zadanie</div>
+                <input type="text" id="task-title" class="teams-input" placeholder="Tytuł egzaminu...">
+                <textarea id="task-desc" class="teams-textarea teams-input" placeholder="Instrukcje..."></textarea>
 
-            <select id="task-type">
-                <option value="online">Tryb Online (Wbudowany arkusz)</option>
-                <option value="offline">Tryb Lokalny (MS Excel)</option>
-            </select>
-            <button class="btn btn-primary" onclick="startGlobalTask()">Wypchnij Zadanie</button>
+                <div class="section-title" style="margin-top:20px">Szablon Excel (.xlsx)</div>
+                <input type="file" id="task-template" class="teams-input" style="padding:5px">
+
+                <button class="btn-teams" style="width:100%; margin-top:10px" onclick="startGlobalTask()">Rozpocznij Egzamin</button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:8px;">
+                    <button class="btn-teams btn-outline" onclick="lockAll()">LOCK ALL</button>
+                    <button class="btn-teams btn-outline" style="background:var(--danger)" onclick="blackScreenAll()">BLACK ALL</button>
+                </div>
+            </aside>
+
+            <main class="main-content">
+                <div class="stats-bar">
+                    <div class="stat-item"><span class="stat-value" id="stat-active">0</span><span class="stat-label">Uczniów</span></div>
+                    <div class="stat-item"><span class="stat-value" id="stat-avg-score">0%</span><span class="stat-label">Średni Wynik</span></div>
+                    <div class="stat-item"><span class="stat-value" id="stat-alerts" style="color:var(--danger)">0</span><span class="stat-label">Alerty</span></div>
+                </div>
+                <div class="grid-view" id="student-grid">
+                    <!-- Cards will be injected here -->
+                </div>
+            </main>
+
+            <aside class="activity-feed">
+                <div class="section-title">Dziennik Zdarzeń</div>
+                <div class="feed-container" id="feed"></div>
+            </aside>
         </div>
 
         <div id="map" class="view-container">
@@ -349,7 +391,6 @@
             </div>
         </div>
 
-        <div id="chat" class="view-container"><div style="padding:40px"><h2>Moduł Czatu</h2><p>Wkrótce...</p></div></div>
         <div id="leaderboard" class="view-container">
             <div style="padding:40px; width:100%;">
                 <h2>🏆 Ranking Uczniów</h2>
@@ -358,6 +399,19 @@
                 </div>
             </div>
         </div>
+
+        <div id="marketplace" class="view-container">
+            <div style="padding:40px; width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>🛒 Marketplace: Szablony Egzaminacyjne</h2>
+                    <button class="btn btn-teams" onclick="loadMarketplace()">Odśwież</button>
+                </div>
+                <div id="marketplace-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:20px;">
+                    <!-- Marketplace items here -->
+                </div>
+            </div>
+        </div>
+
         <div id="settings" class="view-container"><div style="padding:40px"><h2>Ustawienia</h2><p>v1.2.0-PRO</p></div></div>
     </div>
 
@@ -365,7 +419,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- Authentication Check ---
         const token = localStorage.getItem('edutrack_token');
         const userData = JSON.parse(localStorage.getItem('edutrack_user') || '{}');
 
@@ -374,121 +427,57 @@
         }
 
         document.getElementById('user-name').innerText = userData.username || 'Unknown';
-        document.getElementById('user-dept').innerText = userData.department || 'General';
+        document.getElementById('user-org').innerText = userData.organization || 'Local';
 
-        function logout() {
-            localStorage.removeItem('edutrack_token');
-            localStorage.removeItem('edutrack_user');
-            window.location.href = '/login';
-        }
+        const socket = io({ auth: { token } });
+        socket.on('connect', () => socket.emit('teacher-auth', token));
 
-        const socket = io({
-            auth: { token: token } // Alternative: handle on 'connect'
-        });
-
-        socket.on('connect', () => {
-            socket.emit('teacher-auth', token);
-        });
-
-        const grid = document.getElementById('grid');
-        const mapGrid = document.getElementById('map-grid');
-        const feed = document.getElementById('feed');
         const students = {};
+        const feed = document.getElementById('feed');
+        const grid = document.getElementById('student-grid');
+        const mapGrid = document.getElementById('map-grid');
 
         function log(msg) {
             const div = document.createElement('div');
             div.className = 'feed-item';
-            div.innerHTML = `<span class="feed-time">${new Date().toLocaleTimeString()}</span><br><span>${msg}</span>`;
+            div.innerHTML = `<span class="feed-time">${new Date().toLocaleTimeString()}</span><br>${msg}`;
             feed.prepend(div);
-        }
-
-        window.toggleTheme = function() {
-            document.body.classList.toggle('light-mode');
-            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
-        }
-        if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
-
-        // --- Initial Data Load ---
-        async function loadStudents() {
-            try {
-                const res = await fetch('/api/students', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.status === 401 || res.status === 400) logout();
-                const studentsData = await res.json();
-                studentsData.forEach(s => {
-                    updateStudentCard({ id: s.hostname, ...s });
-                });
-            } catch (err) { log('Error loading students'); }
-        }
-        loadStudents();
-
-        socket.on('teacher-update', (data) => {
-            updateStudentCard(data);
-        });
-
-        function updateStudentCard(data) {
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            if (!students[id]) {
-                const card = document.createElement('div');
-                card.id = `card-${id}`;
-                card.className = 'card';
-                grid.appendChild(card);
-                students[id] = true;
-                log(`Device connected: ${escapeHtml(data.id)}`);
-            }
-            
-            const card = document.getElementById(`card-${id}`);
-            const safeId = escapeHtml(data.id);
-            const safeScore = escapeHtml(data.lastScore || '0/0');
-            const safeAlerts = escapeHtml(String(data.alerts || 0));
-            const safeWindowsCount = escapeHtml(String(data.windows ? data.windows.length : 0));
-            const lastWinTitle = data.windows && data.windows[0] ? data.windows[0].title : 'Brak';
-            const safeLastWinTitle = escapeHtml(lastWinTitle.substring(0, 25));
-            const fullWinTitle = escapeHtml(lastWinTitle);
-
-            card.innerHTML = `
-                <div class="card-header">
-                    <strong style="font-size:1.1rem">🖥️ ${safeId}</strong>
-                    <div class="status-dot"></div>
-                </div>
-                <img id="screen-${id}" class="screen-thumb" onclick="openModal(this.src)" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect width='100' height='50' fill='%23000'/%3E%3C/svg%3E">
-                <div class="data-row"><span>Wynik Excel:</span><b>${safeScore}</b></div>
-                <div class="data-row"><span>Alerty:</span><b style="color:var(--danger)">${safeAlerts}</b></div>
-                <div class="data-row"><span>Okna:</span><b>${safeWindowsCount} aktywnych</b></div>
-                <div class="data-row"><span>Ostatnie okno:</span><b title="${fullWinTitle}">${safeLastWinTitle}...</b></div>
-                <div id="audit-${id}" style="font-size:0.6rem; color:#8b949e; margin-top:10px; border-top:1px solid #30363d; padding-top:10px;">
-                    Czekam na audyt techniczny...
-                </div>
-                <div style="margin-top:15px; display:flex; flex-direction:column; gap:5px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="btn" style="flex:1; padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${safeId}')">MSG</button>
-                        <button class="btn" style="flex:1; padding:6px; font-size:0.7rem; background:var(--warning); color:black;" onclick="remoteLock('${safeId}')">LOCK</button>
-                    </div>
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="blackScreen('${safeId}')">BLACK SCREEN</button>
-                    <button class="btn btn-outline" style="padding:6px; font-size:0.7rem; margin-top:5px;" onclick="downloadReport('${safeId}')">JSON REPORT</button>
-                    <div style="display:flex; gap:5px;">
-                        <button class="btn" style="flex:1; padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="downloadPDFReport('${safeId}')">PDF EVIDENCE</button>
-                        <button class="btn" style="flex:1; padding:6px; font-size:0.7rem; background:var(--success); color:black;" onclick="downloadCertificate('${safeId}')">CERT</button>
-                    </div>
-                </div>
-            `;
         }
 
         function switchView(viewId) {
             document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
-            document.getElementById('nav-' + viewId).classList.add('active');
+            document.getElementById('nav-' + (viewId === 'grid' ? 'grid' : viewId)).classList.add('active');
         }
 
-        function getStudentLevel(score) {
-            if(!score || !score.toString().includes('/')) return 1;
-            const [got, max] = score.split('/').map(Number);
-            return Math.floor(((got / (max || 1)) * 5)) + 1;
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+        }
+        if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-        // --- KLUCZOWA ZMIANA: INTELIGENTNA AKTUALIZACJA ---
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.status === 401) logout();
+                const studentsData = await res.json();
+                studentsData.forEach(s => {
+                    if (!students[s.hostname]) {
+                        students[s.hostname] = { data: s, lastImg: '' };
+                    }
+                });
+                updateUI();
+            } catch (err) { log('Error loading students'); }
+        }
+        loadStudents();
+
         function updateUI() {
             const keys = Object.keys(students);
             document.getElementById('stat-active').innerText = keys.length;
@@ -502,22 +491,19 @@
                 const data = s.data || {};
                 totalAlerts += (data.alerts || 0);
 
-            if (templateFile) {
-                const formData = new FormData();
-                formData.append('template', templateFile);
-                await fetch('/api/upload-template', {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                log("Template uploaded successfully.");
-            }
+                const scoreText = data.lastScore || '0/0';
+                if(scoreText.includes('/')) {
+                    const [got, max] = scoreText.split('/').map(Number);
+                    if(max > 0) {
+                        totalScorePercent += (got / max);
+                        scoredCount++;
+                    }
+                }
 
-                const level = getStudentLevel(scoreText);
+                const level = Math.max(1, 5 - Math.floor(((data.alerts || 0) / 10) * 5));
                 const isClean = (data.alerts === 0);
-                const isTop = scoreText.toString().startsWith('10/10') || scoreText.toString().startsWith('100/100');
+                const isTop = scoreText.startsWith('10/10') || scoreText.startsWith('100/100');
 
-                // Aktualizacja lub Tworzenie karty w Grid
                 let card = document.getElementById(`card-${id}`);
                 if (!card) {
                     card = document.createElement('div');
@@ -527,26 +513,27 @@
                 }
 
                 card.innerHTML = `
-                    <div class="level-tag">LVL ${level}</div>
+                    <div class="level-tag">SEC LVL ${level}</div>
                     <div class="card-badge-container">
                         ${isTop ? '<div class="badge gold" title="Top">🏆</div>' : ''}
                         ${isClean ? '<div class="badge clean" title="Clean">🛡️</div>' : ''}
                     </div>
-                    <img class="card-preview" onclick="openModal(this.src)" src="${s.lastImg || ''}">
+                    <img class="card-preview" onclick="openModal(this.src)" src="${s.lastImg || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'50\'%3E%3Crect width=\'100\' height=\'50\' fill=\'%23000\'/%3E%3C/svg%3E'}">
                     <div class="card-info">
-                        <div class="student-name"><div class="status-badge"></div> ${id}</div>
-                        <div class="data-row"><span>Wynik:</span><b>${scoreText}</b></div>
+                        <div class="student-name"><div class="status-badge"></div> ${escapeHtml(id)}</div>
+                        <div class="data-row"><span>Wynik:</span><b>${escapeHtml(scoreText)}</b></div>
                         <div class="data-row"><span>Alerty:</span><b style="color:${data.alerts > 0 ? 'var(--danger)' : 'inherit'}">${data.alerts}</b></div>
                     </div>
-                    <div class="card-actions" style="flex-wrap: wrap;">
-                        <button class="mini-btn btn-outline" onclick="sendDirectMessage('${id}')">MSG</button>
-                        <button class="mini-btn" style="background:var(--warning); color:black" onclick="remoteLock('${id}')">LOCK</button>
-                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="blackScreen('${id}')">BLACK</button>
-                        <button class="mini-btn btn-outline" style="flex: 100%; margin-top: 5px;" onclick="downloadReport('${id}')">REPORT</button>
+                    <div class="card-actions">
+                        <button class="mini-btn btn-outline" onclick="sendDirectMessage('${escapeHtml(id)}')">MSG</button>
+                        <button class="mini-btn" style="background:var(--warning); color:black" onclick="remoteLock('${escapeHtml(id)}')">LOCK</button>
+                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="blackScreen('${escapeHtml(id)}')">BLACK</button>
+                        <button class="mini-btn btn-outline" onclick="downloadReport('${escapeHtml(id)}')">JSON</button>
+                        <button class="mini-btn btn-outline" onclick="downloadPDFReport('${escapeHtml(id)}')">PDF</button>
+                        <button class="mini-btn" style="background:var(--success); color:black" onclick="downloadCertificate('${escapeHtml(id)}')">CERT</button>
                     </div>
                 `;
 
-                // Aktualizacja lub Tworzenie biurka na Mapie
                 let desk = document.getElementById(`desk-${id}`);
                 if (!desk) {
                     desk = document.createElement('div');
@@ -555,8 +542,8 @@
                     mapGrid.appendChild(desk);
                 }
                 desk.innerHTML = `
-                    <img class="screen-small" src="${s.lastImg || ''}">
-                    <div class="desk-label">${id}</div>
+                    <img class="screen-small" src="${s.lastImg || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'50\'%3E%3Crect width=\'100\' height=\'50\' fill=\'%23000\'/%3E%3C/svg%3E'}">
+                    <div class="desk-label">${escapeHtml(id)}</div>
                     ${data.alerts > 0 ? '<div style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; color:white">!</div>' : ''}
                 `;
             });
@@ -567,11 +554,12 @@
         }
 
         socket.on('teacher-update', (data) => {
-            if (!students[data.id]) {
-                students[data.id] = { data: data, lastImg: '' };
-                log(`Uczeń połączony: ${data.id}`);
+            const id = data.id;
+            if (!students[id]) {
+                students[id] = { data: data, lastImg: '' };
+                log(`Uczeń połączony: <b>${escapeHtml(id)}</b>`);
             } else {
-                students[data.id].data = data;
+                students[id].data = data;
             }
             updateUI();
         });
@@ -583,13 +571,35 @@
             }
         });
 
-        socket.on('teacher-alert', (data) => log(`🚨 ${data.id}: ${data.msg}`));
+        socket.on('teacher-alert', (data) => log(`<span style="color:var(--danger)">🚨 ${escapeHtml(data.id)}: ${escapeHtml(data.msg)}</span>`));
 
-        function openModal(src) { if(src) { document.getElementById('modal-img').src = src; document.getElementById('modal').style.display = 'flex'; } }
-        function startGlobalTask() { 
-            socket.emit('start-task', { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value }); 
-            log("Wypchnięto zadanie do wszystkich."); 
+        function openModal(src) {
+            if(src && !src.startsWith('data:image/svg')) {
+                document.getElementById('modal-img').src = src;
+                document.getElementById('modal').style.display = 'flex';
+            }
         }
+
+        async function startGlobalTask() {
+            const title = document.getElementById('task-title').value;
+            const desc = document.getElementById('task-desc').value;
+            const fileInput = document.getElementById('task-template');
+
+            if (fileInput.files.length > 0) {
+                const formData = new FormData();
+                formData.append('template', fileInput.files[0]);
+                await fetch('/api/upload-template', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                log("Szablon .xlsx został zaktualizowany.");
+            }
+
+            socket.emit('start-task', { title, description: desc });
+            log(`Wysłano zadanie: <b>${escapeHtml(title)}</b>`);
+        }
+
         function sendDirectMessage(id) { const msg = prompt("Wiadomość do " + id + ":"); if(msg) socket.emit('teacher-send-msg', { targetId: id, msg }); }
         function remoteLock(id) { if(confirm("Zablokować " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' }); }
         function blackScreen(id) { if(confirm("ZABLOKOWAĆ EKRAN (BLACK) dla " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "BLACK_SCREEN", type: 'black-screen' }); }
@@ -613,9 +623,9 @@
                         ${data.map((s, i) => `
                             <tr style="border-bottom:1px solid var(--teams-border);">
                                 <td style="padding:10px;">${i+1}</td>
-                                <td style="padding:10px;"><b>${s.hostname}</b></td>
+                                <td style="padding:10px;"><b>${escapeHtml(s.hostname)}</b></td>
                                 <td style="padding:10px; color:var(--teams-purple); font-weight:700;">${s.points}</td>
-                                <td style="padding:10px;">${s.rawScore}</td>
+                                <td style="padding:10px;">${escapeHtml(s.rawScore)}</td>
                                 <td style="padding:10px; color:${s.alerts > 0 ? 'var(--danger)' : 'inherit'}">${s.alerts}</td>
                             </tr>
                         `).join('')}
@@ -624,11 +634,30 @@
             } catch (e) { log("Error refreshing leaderboard"); }
         }
 
-        async function downloadPDFReport(id) {
-            window.open(`/api/report/${id}/pdf`);
+        async function loadMarketplace() {
+            const grid = document.getElementById('marketplace-grid');
+            grid.innerHTML = "Ładowanie szablonów...";
+            try {
+                const res = await fetch('/api/marketplace/templates', { headers: { 'Authorization': `Bearer ${token}` } });
+                const templates = await res.json();
+                grid.innerHTML = templates.map(t => `
+                    <div class="student-card" style="padding:15px; border:1px solid var(--teams-border); border-radius:8px; background:var(--teams-card-bg);">
+                        <div style="font-weight:700; margin-bottom:5px;">${escapeHtml(t.name)}</div>
+                        <div style="font-size:0.75rem; color:var(--teams-text-secondary); margin-bottom:10px;">By: ${escapeHtml(t.author)} | ⭐ ${t.stars}</div>
+                        <button class="btn-teams" style="width:100%" onclick="downloadMarketplaceItem('${t.id}')">Zainstaluj</button>
+                    </div>
+                `).join('');
+            } catch (e) { grid.innerHTML = "Błąd połączenia z Marketplace."; }
         }
-        async function downloadCertificate(id) {
-            window.open(`/api/certificate/${id}`);
+
+        async function downloadMarketplaceItem(id) {
+            const res = await fetch('/api/marketplace/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ templateId: id })
+            });
+            const data = await res.json();
+            alert(data.message);
         }
 
         async function downloadReport(id) {
@@ -642,12 +671,22 @@
             a.click();
         }
 
+        async function downloadPDFReport(id) { window.open(`/api/report/${id}/pdf`); }
+        async function downloadCertificate(id) { window.open(`/api/certificate/${id}`); }
+
+        function logout() {
+            localStorage.removeItem('edutrack_token');
+            localStorage.removeItem('edutrack_user');
+            window.location.href = '/login';
+        }
+
         window.addEventListener('keydown', (e) => {
             if(e.ctrlKey && e.key === 'Enter') startGlobalTask();
             if(e.ctrlKey && e.key === 'l') { e.preventDefault(); lockAll(); }
             if(e.ctrlKey && e.key === 'b') { e.preventDefault(); blackScreenAll(); }
         });
-        log("EduTrack Pro v1.2 Gotowy.");
+
+        log("EduTrack Pro v1.2 Ready.");
     </script>
 </body>
 </html>

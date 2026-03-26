@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "EduTrack Pro: Chromebook Monitor",
+  "version": "1.0.0",
+  "description": "Student monitoring for Chromebook-based schools.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "logo.svg"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

@@ -11,6 +11,7 @@ const path = require('path');
 const cors = require('cors');
 const ExcelLogicChecker = require('./src/logic/excel-checker');
 const { PrismaClient } = require('@prisma/client');
+const PluginLoader = require('./src/plugins/loader');
 require('dotenv').config();
 
 const app = express();
@@ -91,6 +92,21 @@ app.use('/api/auth', authRoutes);
 
 app.get('/api/current-task', (req, res) => res.json(currentTask));
 
+app.get('/api/marketplace/templates', authMiddleware, async (req, res) => {
+    const featured = [
+        { id: 't1', name: 'Zadanie: Arkusz Budżetowy v1.0', author: 'EduTrack Pro Team', stars: 4.8 },
+        { id: 't2', name: 'Egzamin INF.02: Sieci LAN', author: 'Jan Kowalski (ZST)', stars: 4.2 },
+        { id: 't3', name: 'Programowanie: C++ Struktury', author: 'ZSP Nr 5', stars: 4.5 }
+    ];
+    res.json(featured);
+});
+
+app.post('/api/marketplace/download', authMiddleware, async (req, res) => {
+    const { templateId } = req.body;
+    console.log(`[Marketplace] Teacher ${req.user.username} downloaded template ${templateId}`);
+    res.json({ message: "Szablon zainstalowany pomyślnie i jest gotowy do użycia." });
+});
+
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const students = await prisma.student.findMany({
@@ -117,13 +133,17 @@ app.get('/api/leaderboard', async (req, res) => {
 
 app.get('/api/students', authMiddleware, async (req, res) => {
     try {
-        const { departmentId } = req.user;
+        const { departmentId, organizationId } = req.user;
         const students = await prisma.student.findMany({
             where: {
                 OR: [
                     { departmentId: departmentId },
-                    { departmentId: null } // Show unassigned students to everyone initially?
-                                          // Or better: allow teachers to "adopt" them.
+                    {
+                        AND: [
+                            { departmentId: null },
+                            organizationId ? { department: { organizationId: organizationId } } : {}
+                        ]
+                    }
                 ]
             },
             include: { processes: true, windows: true }
@@ -294,6 +314,7 @@ io.on('connection', (socket) => {
         try {
             const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'edutrack-jwt-secret-key-2025');
             socket.join(`dept-${decoded.departmentId}`);
+            if (decoded.organizationId) socket.join(`org-${decoded.organizationId}`);
             console.log(`[Socket] Teacher ${decoded.username} joined dept-${decoded.departmentId}`);
         } catch (err) {
             console.log('[Socket] Teacher auth failed');
@@ -443,4 +464,10 @@ io.on('connection', (socket) => {
 if (!isHeadless) {
     bonjour.publish({ name: 'EduTrack Central Server', type: 'http', port: PORT });
 }
+// Load Plugins
+const pluginLoader = new PluginLoader(app, io, prisma);
+pluginLoader.loadPlugins(path.join(__dirname, 'plugins')).then(() => {
+    console.log('[EduTrack] All plugins loaded.');
+});
+
 httpServer.listen(PORT, () => console.log(`[EduTrack] Server live on port ${PORT}${isHeadless ? ' (Headless)' : ''}`));
