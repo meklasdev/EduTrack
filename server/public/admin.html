@@ -2,48 +2,316 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>EduTrack: COMMAND CENTER v1.0</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack Pro v1.2: Microsoft Teams Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #05070a; --glass: rgba(22, 27, 34, 0.8); --accent: #00d4ff; --danger: #ff4d4d; --safe: #bcff00; --panel-border: rgba(255,255,255,0.1); }
-        body { margin: 0; background: var(--bg); color: #e6edf3; font-family: 'Outfit', sans-serif; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* 🏰 Layout */
-        aside { width: 340px; background: #0d1117; border-right: 1px solid var(--panel-border); padding: 25px; display: flex; flex-direction: column; z-index: 10; }
-        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #010409; }
-        
-        /* 🔬 Typography */
-        h1 { font-size: 1.4rem; letter-spacing: 2px; margin: 0 0 40px 0; color: var(--accent); }
-        h1 span { font-weight: 300; color: #fff; }
-        
-        /* 🕹️ Controls */
-        .control-group { margin-bottom: 30px; }
-        label { display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        input, select { width: 100%; background: #05070a; border: 1px solid #30363d; color: white; padding: 12px; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; font-family: inherit; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; transition: 0.3s; text-transform: uppercase; }
-        .btn-primary { background: var(--accent); color: #000; box-shadow: 0 0 15px rgba(0,212,255,0.3); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0,212,255,0.5); }
-        
-        /* 🔲 Grid & Cards */
-        .monitoring-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; padding: 20px; overflow-y: auto; }
-        .card { background: var(--glass); border: 1px solid var(--panel-border); border-radius: 8px; padding: 15px; position: relative; transition: 0.3s; }
-        .card:hover { border-color: var(--accent); background: rgba(22, 27, 34, 0.95); }
-        .card.alert { border-color: var(--danger); animation: danger-pulse 2s infinite; }
-        @keyframes danger-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(255,77,77,0.2); } 50% { box-shadow: 0 0 30px rgba(255,77,77,0.4); } }
-        
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 8px var(--safe); }
-        
-        .screen-thumb { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 6px; cursor: zoom-in; object-fit: cover; border: 1px solid #30363d; margin-bottom: 15px; }
-        .data-row { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #8b949e; display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .data-row b { color: #fff; }
+        :root {
+            --teams-purple: #6264a7;
+            --teams-purple-hover: #464775;
+            --teams-bg: #201f1f;
+            --teams-nav-bg: #333232;
+            --teams-card-bg: #292828;
+            --teams-border: #424242;
+            --teams-text: #ffffff;
+            --teams-text-secondary: #adadad;
+            --teams-accent: #6264a7;
+            --danger: #d13438;
+            --success: #92c353;
+            --warning: #ffb900;
+            --bronze: #cd7f32;
+            --silver: #c0c0c0;
+            --gold: #ffd700;
+            --transition-speed: 0.3s;
+        }
 
-        /* 📟 Terminal */
-        #log-console { height: 150px; background: #010409; border-top: 1px solid #30363d; padding: 15px; font-family: 'JetBrains Mono'; font-size: 0.7rem; overflow-y: auto; color: #3fb950; }
+        body.light-mode {
+            --teams-bg: #f5f5f5;
+            --teams-nav-bg: #ebebeb;
+            --teams-card-bg: #ffffff;
+            --teams-border: #e0e0e0;
+            --teams-text: #242424;
+            --teams-text-secondary: #616161;
+            --teams-accent: #464775;
+        }
 
-        /* 🖼️ Modal */
-        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 100; cursor: zoom-out; }
-        #modal img { max-width: 90%; max-height: 90%; border: 2px solid var(--accent); }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--teams-bg);
+            color: var(--teams-text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background var(--transition-speed), color var(--transition-speed);
+        }
+
+        /* 🟦 Navigation Rail */
+        .nav-rail {
+            width: 72px;
+            background: var(--teams-nav-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 12px;
+            flex-shrink: 0;
+            z-index: 100;
+            border-right: 1px solid var(--teams-border);
+        }
+        .nav-item {
+            width: 100%;
+            height: 56px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--teams-text-secondary);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            padding: 0;
+        }
+        .nav-item:hover { color: var(--teams-text); background: rgba(255,255,255,0.05); }
+        .nav-item.active { color: var(--teams-purple); border-left: 3px solid var(--teams-purple); background: rgba(98, 100, 167, 0.1); }
+        .nav-item.active svg { stroke: var(--teams-purple); }
+
+        .nav-icon-svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            stroke: var(--teams-text-secondary);
+            stroke-width: 1.5;
+            fill: none;
+            transition: stroke 0.2s, transform 0.2s;
+        }
+        .nav-item:hover .nav-icon-svg { stroke: var(--teams-text); transform: scale(1.1); }
+
+        @keyframes pulse-stroke {
+            0% { stroke-width: 1.5; }
+            50% { stroke-width: 2.5; stroke: var(--teams-purple); }
+            100% { stroke-width: 1.5; }
+        }
+        .nav-item.active .nav-icon-svg { animation: pulse-stroke 2s infinite ease-in-out; }
+
+        /* ⬜ Main Workspace */
+        .main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        header {
+            height: 48px;
+            background: var(--teams-bg);
+            border-bottom: 1px solid var(--teams-border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+        }
+        .logo { font-weight: 700; font-size: 14px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+        .logo span { color: var(--teams-purple); }
+
+        .header-controls { display: flex; align-items: center; gap: 15px; }
+
+        .theme-toggle {
+            cursor: pointer;
+            width: 40px;
+            height: 20px;
+            background: var(--teams-border);
+            border-radius: 20px;
+            position: relative;
+            transition: background 0.3s;
+        }
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        body.light-mode .theme-toggle { background: var(--teams-purple); }
+        body.light-mode .theme-toggle::after { transform: translateX(20px); }
+
+        /* 📋 Views */
+        .view-container { display: none; height: 100%; width: 100%; flex-direction: row; animation: slideIn 0.3s ease-out; }
+        .view-container.active { display: flex !important; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .task-sidebar {
+            width: 300px;
+            background: var(--teams-bg);
+            border-right: 1px solid var(--teams-border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--teams-text-secondary); margin-bottom: 16px; letter-spacing: 0.5px; }
+
+        .teams-input {
+            width: 100%;
+            background: rgba(0,0,0,0.1);
+            border: 1px solid var(--teams-border);
+            border-bottom: 2px solid transparent;
+            color: var(--teams-text);
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            outline: none;
+        }
+        .teams-input:focus { border-bottom-color: var(--teams-purple); }
+        .teams-textarea { height: 80px; resize: none; }
+
+        .btn-teams {
+            background: var(--teams-purple);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 13px;
+        }
+        .btn-teams:hover { background: var(--teams-purple-hover); transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--teams-border); color: var(--teams-text); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+        /* 🪟 Monitoring Grid */
+        .main-content { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.05); }
+
+        .stats-bar {
+            height: 60px;
+            border-bottom: 1px solid var(--teams-border);
+            display: flex;
+            padding: 0 24px;
+            align-items: center;
+            gap: 40px;
+            background: var(--teams-bg);
+        }
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-value { font-size: 18px; font-weight: 700; color: var(--teams-purple); }
+        .stat-label { font-size: 10px; color: var(--teams-text-secondary); text-transform: uppercase; }
+
+        .grid-view {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            align-content: start;
+        }
+
+        /* 🏢 Classroom Map View */
+        .map-view {
+            perspective: 1200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            overflow: auto;
+            background: #111;
+            width: 100%;
+            height: 100%;
+        }
+        .classroom-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 180px);
+            gap: 40px;
+            transform: rotateX(25deg);
+            transform-style: preserve-3d;
+            min-height: 100px;
+            min-width: 100px;
+        }
+        .map-desk {
+            width: 180px;
+            height: 120px;
+            background: var(--teams-card-bg);
+            border: 2px solid var(--teams-border);
+            border-radius: 4px;
+            position: relative;
+            transform: translateZ(10px);
+            transition: 0.5s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .map-desk:hover { transform: translateZ(30px); border-color: var(--teams-purple); box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .map-desk .screen-small { width: 140px; height: 80px; background: #000; border: 1px solid #333; margin-top: 5px; object-fit: cover; }
+        .desk-label { font-size: 10px; font-weight: 700; margin-top: 5px; color: var(--teams-text-secondary); }
+
+        /* Student Card Enhancements */
+        .student-card {
+            background: var(--teams-card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--teams-border);
+            transition: 0.2s;
+            position: relative;
+        }
+        .student-card:hover { border-color: var(--teams-purple); transform: translateY(-2px); }
+        .card-preview { width: 100%; aspect-ratio: 16/9; background: #111; display: block; object-fit: cover; cursor: pointer; }
+
+        .card-badge-container { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; pointer-events: none; }
+        .badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: var(--teams-nav-bg);
+            border: 1px solid var(--teams-border);
+        }
+        .badge.gold { color: var(--gold); border-color: var(--gold); }
+        .badge.clean { color: var(--success); border-color: var(--success); }
+
+        .level-tag {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: var(--teams-purple);
+            color: white;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
+        .card-info { padding: 12px; }
+        .student-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .status-badge { width: 10px; height: 10px; border-radius: 50%; background: var(--success); box-shadow: 0 0 5px var(--success); }
+        .data-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--teams-text-secondary); margin-bottom: 4px; }
+        .data-row b { color: var(--teams-text); }
+
+        .card-actions { display: flex; padding: 8px 12px; border-top: 1px solid var(--teams-border); gap: 8px; }
+        .mini-btn { flex: 1; padding: 4px; font-size: 10px; text-transform: uppercase; font-weight: 700; border-radius: 2px; border: none; cursor: pointer; }
+
+        .activity-feed {
+            width: 250px;
+            background: var(--teams-bg);
+            border-left: 1px solid var(--teams-border);
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+        .feed-container { flex: 1; overflow-y: auto; font-size: 11px; color: var(--teams-text-secondary); }
+        .feed-item { margin-bottom: 12px; border-bottom: 1px solid var(--teams-border); padding-bottom: 8px; animation: fadeIn 0.3s ease-out; }
+        .feed-time { color: var(--teams-purple); font-weight: 600; }
+
+        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        #modal img { max-width: 95%; max-height: 95%; border: 3px solid var(--teams-purple); border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -72,17 +340,15 @@
             <button class="btn btn-primary" onclick="startGlobalTask()">Wypchnij Zadanie</button>
         </div>
 
-        <div class="control-group" style="margin-top:auto;">
-            <label>Wiadomość Ogólna</label>
-            <input id="global-msg" type="text" placeholder="Treść wiadomości...">
-            <button class="btn" style="background:#30363d; color:white;" onclick="broadcastMessage()">Wyślij do wszystkich</button>
+        <div id="map" class="view-container">
+            <div class="map-view">
+                <div class="classroom-grid" id="map-grid"></div>
+            </div>
         </div>
-    </aside>
 
-    <main>
-        <div class="monitoring-grid" id="grid"></div>
-        <div id="log-console">--- SYSTEM READY: Monitoring Active ---</div>
-    </main>
+        <div id="chat" class="view-container"><div style="padding:40px"><h2>Moduł Czatu</h2><p>Wkrótce...</p></div></div>
+        <div id="settings" class="view-container"><div style="padding:40px"><h2>Ustawienia</h2><p>v1.2.0-PRO</p></div></div>
+    </div>
 
     <div id="modal" onclick="this.style.display='none'"><img id="modal-img"></div>
 
@@ -114,22 +380,22 @@
         });
 
         const grid = document.getElementById('grid');
-        const consoleEl = document.getElementById('log-console');
+        const mapGrid = document.getElementById('map-grid');
+        const feed = document.getElementById('feed');
         const students = {};
 
         function log(msg) {
-            const time = new Date().toLocaleTimeString();
-            consoleEl.innerHTML = `[${time}] ${msg}<br>${consoleEl.innerHTML.substring(0, 1000)}`;
+            const div = document.createElement('div');
+            div.className = 'feed-item';
+            div.innerHTML = `<span class="feed-time">${new Date().toLocaleTimeString()}</span><br><span>${msg}</span>`;
+            feed.prepend(div);
         }
 
-        function escapeHtml(unsafe) {
-            return unsafe
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
         }
+        if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
 
         // --- Initial Data Load ---
         async function loadStudents() {
@@ -190,65 +456,32 @@
             `;
         }
 
-        socket.on('teacher-screenshot', (data) => {
-            if(!data.id) return;
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            let img = document.getElementById(`screen-${id}`);
-            
-            if (!students[id]) {
-                const card = document.createElement('div');
-                card.id = `card-${id}`;
-                card.className = 'card';
-                card.innerHTML = `<div class="card-header"><strong style="font-size:1.1rem">🖥️ ${data.id}</strong><div class="status-dot"></div></div><img id="screen-${id}" class="screen-thumb" onclick="openModal(this.src)">`;
-                grid.appendChild(card);
-                students[id] = true;
-                log(`Quick-connect: ${data.id}`);
-                img = document.getElementById(`screen-${id}`);
-            }
-            
-            if (img) {
-                img.src = `data:image/jpeg;base64,${data.img}`;
-                console.log(`[UI] Updated screen for ${data.id}`);
-            }
-        });
-
-        socket.on('teacher-audit-report', (data) => {
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            const box = document.getElementById(`audit-${id}`);
-            if (!box) return;
-            let html = '<strong>Audyt INF.0x: </strong>';
-            for (const [app, status] of Object.entries(data.auditResults)) {
-                if(status === 'INSTALLED') html += `<span style="color:var(--safe)">●</span> ${app} `;
-            }
-            box.innerHTML = html;
-        });
-
-        socket.on('teacher-alert', (data) => {
-            const id = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-            const card = document.getElementById(`card-${id}`);
-            if (card) {
-                card.classList.add('alert');
-                setTimeout(() => card.classList.remove('alert'), 5000);
-            }
-            const color = data.type === 'focus_loss' ? '#ffcc00' : 'var(--danger)';
-            const time = new Date().toLocaleTimeString();
-            const safeMsg = escapeHtml(data.msg);
-            const safeId = escapeHtml(data.id);
-            consoleEl.innerHTML = `<div style="color:${color}">[${time}] 🚨 ALERT (${safeId}): ${safeMsg}</div>${consoleEl.innerHTML}`;
-        });
-
-        function openModal(src) {
-            const m = document.getElementById('modal');
-            const img = document.getElementById('modal-img');
-            img.src = src;
-            m.style.display = 'flex';
+        function switchView(viewId) {
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            document.getElementById('nav-' + viewId).classList.add('active');
         }
 
-        async function startGlobalTask() {
-            const title = document.getElementById('task-title').value;
-            const description = document.getElementById('task-desc').value;
-            const type = document.getElementById('task-type').value;
-            const templateFile = document.getElementById('task-template').files[0];
+        function getStudentLevel(score) {
+            if(!score || !score.toString().includes('/')) return 1;
+            const [got, max] = score.split('/').map(Number);
+            return Math.floor(((got / (max || 1)) * 5)) + 1;
+        }
+
+        // --- KLUCZOWA ZMIANA: INTELIGENTNA AKTUALIZACJA ---
+        function updateUI() {
+            const keys = Object.keys(students);
+            document.getElementById('stat-active').innerText = keys.length;
+
+            let totalAlerts = 0;
+            let totalScorePercent = 0;
+            let scoredCount = 0;
+
+            keys.forEach(id => {
+                const s = students[id];
+                const data = s.data || {};
+                totalAlerts += (data.alerts || 0);
 
             if (templateFile) {
                 const formData = new FormData();
@@ -261,25 +494,86 @@
                 log("Template uploaded successfully.");
             }
 
-            socket.emit('start-task', { title, description, type });
-            log(`Global task started: ${title}`);
+                const level = getStudentLevel(scoreText);
+                const isClean = (data.alerts === 0);
+                const isTop = scoreText.toString().startsWith('10/10') || scoreText.toString().startsWith('100/100');
+
+                // Aktualizacja lub Tworzenie karty w Grid
+                let card = document.getElementById(`card-${id}`);
+                if (!card) {
+                    card = document.createElement('div');
+                    card.id = `card-${id}`;
+                    card.className = 'student-card';
+                    grid.appendChild(card);
+                }
+
+                card.innerHTML = `
+                    <div class="level-tag">LVL ${level}</div>
+                    <div class="card-badge-container">
+                        ${isTop ? '<div class="badge gold" title="Top">🏆</div>' : ''}
+                        ${isClean ? '<div class="badge clean" title="Clean">🛡️</div>' : ''}
+                    </div>
+                    <img class="card-preview" onclick="openModal(this.src)" src="${s.lastImg || ''}">
+                    <div class="card-info">
+                        <div class="student-name"><div class="status-badge"></div> ${id}</div>
+                        <div class="data-row"><span>Wynik:</span><b>${scoreText}</b></div>
+                        <div class="data-row"><span>Alerty:</span><b style="color:${data.alerts > 0 ? 'var(--danger)' : 'inherit'}">${data.alerts}</b></div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="mini-btn btn-outline" onclick="sendDirectMessage('${id}')">MSG</button>
+                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${id}')">LOCK</button>
+                    </div>
+                `;
+
+                // Aktualizacja lub Tworzenie biurka na Mapie
+                let desk = document.getElementById(`desk-${id}`);
+                if (!desk) {
+                    desk = document.createElement('div');
+                    desk.id = `desk-${id}`;
+                    desk.className = 'map-desk';
+                    mapGrid.appendChild(desk);
+                }
+                desk.innerHTML = `
+                    <img class="screen-small" src="${s.lastImg || ''}">
+                    <div class="desk-label">${id}</div>
+                    ${data.alerts > 0 ? '<div style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; color:white">!</div>' : ''}
+                `;
+            });
+
+            const avg = scoredCount > 0 ? Math.round((totalScorePercent / scoredCount) * 100) : 0;
+            document.getElementById('stat-avg-score').innerText = avg + '%';
+            document.getElementById('stat-alerts').innerText = totalAlerts;
         }
 
-        function broadcastMessage() {
-            const msg = document.getElementById('global-msg').value;
-            if(msg) socket.emit('teacher-send-msg', { msg });
-        }
-
-        function sendDirectMessage(targetId) {
-            const msg = prompt("Wiadomość:");
-            if(msg) socket.emit('teacher-send-msg', { targetId, msg });
-        }
-
-        function remoteLock(targetId) {
-            if(confirm(`Zablokować ekran ucznia ${targetId}?`)) {
-                socket.emit('teacher-send-msg', { targetId, msg: "TWÓJ EKRAN ZOSTAŁ ZABLOKOWANY PRZEZ NAUCZYCIELA!", type: 'lock' });
+        socket.on('teacher-update', (data) => {
+            if (!students[data.id]) {
+                students[data.id] = { data: data, lastImg: '' };
+                log(`Uczeń połączony: ${data.id}`);
+            } else {
+                students[data.id].data = data;
             }
+            updateUI();
+        });
+
+        socket.on('teacher-screenshot', (data) => {
+            if(students[data.id]) {
+                students[data.id].lastImg = `data:image/jpeg;base64,${data.img}`;
+                updateUI();
+            }
+        });
+
+        socket.on('teacher-alert', (data) => log(`🚨 ${data.id}: ${data.msg}`));
+
+        function openModal(src) { if(src) { document.getElementById('modal-img').src = src; document.getElementById('modal').style.display = 'flex'; } }
+        function startGlobalTask() { 
+            socket.emit('start-task', { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value }); 
+            log("Wypchnięto zadanie do wszystkich."); 
         }
+        function sendDirectMessage(id) { const msg = prompt("Wiadomość do " + id + ":"); if(msg) socket.emit('teacher-send-msg', { targetId: id, msg }); }
+        function remoteLock(id) { if(confirm("Zablokować " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' }); }
+
+        window.addEventListener('keydown', (e) => { if(e.ctrlKey && e.key === 'Enter') startGlobalTask(); });
+        log("EduTrack Pro v1.2 Gotowy.");
     </script>
 </body>
 </html>

@@ -13,6 +13,8 @@ sudo apt-get install -y nodejs build-essential
 # 2. Install Project Dependencies
 echo "[1/3] Installing Node.js packages..."
 cd server && npm install
+npx prisma generate
+cd ..
 
 # 3. Setup Folders
 echo "[2/3] Preparing data directories..."
