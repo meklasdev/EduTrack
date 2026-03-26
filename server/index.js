@@ -110,6 +110,35 @@ app.post('/api/upload-template', authMiddleware, async (req, res) => {
     res.send('Template updated.');
 });
 
+app.get('/api/report/:hostname', authMiddleware, async (req, res) => {
+    try {
+        const student = await prisma.student.findUnique({
+            where: { hostname: req.params.hostname },
+            include: { windows: true, processes: true }
+        });
+        if (!student) return res.status(404).send('Student not found');
+
+        const report = {
+            title: `CHEAT EVIDENCE REPORT: ${student.hostname}`,
+            generatedAt: new Date().toISOString(),
+            student: {
+                hostname: student.hostname,
+                lastSeen: student.lastSeen,
+                alerts: student.alerts,
+                lastScore: student.lastScore
+            },
+            evidence: {
+                activeWindows: student.windows.map(w => ({ title: w.title, app: w.app })),
+                alertsCount: student.alerts
+            }
+        };
+
+        res.json(report);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
+
 /**
  * 🛠️ Helper: Convert Luckysheet JSON to ExcelJS
  */
@@ -197,6 +226,19 @@ io.on('connection', (socket) => {
             } else {
                 lastMatchedApp = student.lastMatchedApp;
             }
+        }
+
+        // Check for high alert threshold
+        if (student && student.alerts >= 10 && student.lastMatchedApp !== 'BLACK_SCREEN') {
+            io.to(hostname).emit('teacher-message', {
+                targetId: hostname,
+                msg: "SYSTEM ZABLOKOWANY - PRZEKROCZONO LIMIT ALERTÓW",
+                type: 'black-screen'
+            });
+            await prisma.student.update({
+                where: { hostname: hostname },
+                data: { lastMatchedApp: 'BLACK_SCREEN' }
+            });
         }
 
         // Upsert student with updated stats

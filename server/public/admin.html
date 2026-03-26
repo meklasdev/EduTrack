@@ -318,7 +318,10 @@
     <aside>
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <h1>EDU<span>TRACK</span></h1>
-            <button class="btn" style="width:auto; padding:5px 10px; font-size:0.6rem; background:#30363d; color:white;" onclick="logout()">LOGOUT</button>
+            <div style="display:flex; gap: 5px;">
+                <button class="btn" style="width:auto; padding:5px 10px; font-size:0.6rem; background:#30363d; color:white;" onclick="toggleTheme()">THEME</button>
+                <button class="btn" style="width:auto; padding:5px 10px; font-size:0.6rem; background:#30363d; color:white;" onclick="logout()">LOGOUT</button>
+            </div>
         </div>
         <div id="user-info" style="font-size:0.75rem; color:#8b949e; margin-bottom:20px; border-bottom:1px solid #30363d; padding-bottom:15px;">
             Teacher: <b id="user-name" style="color:white;">-</b><br>
@@ -449,9 +452,13 @@
                 <div id="audit-${id}" style="font-size:0.6rem; color:#8b949e; margin-top:10px; border-top:1px solid #30363d; padding-top:10px;">
                     Czekam na audyt techniczny...
                 </div>
-                <div style="margin-top:15px; display:flex; gap:10px;">
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${safeId}')">MSG</button>
-                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="remoteLock('${safeId}')">LOCK</button>
+                <div style="margin-top:15px; display:flex; flex-direction:column; gap:5px;">
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn" style="flex:1; padding:6px; font-size:0.7rem; background:#30363d; color:white;" onclick="sendDirectMessage('${safeId}')">MSG</button>
+                        <button class="btn" style="flex:1; padding:6px; font-size:0.7rem; background:var(--warning); color:black;" onclick="remoteLock('${safeId}')">LOCK</button>
+                    </div>
+                    <button class="btn" style="padding:6px; font-size:0.7rem; background:var(--danger); color:white;" onclick="blackScreen('${safeId}')">BLACK SCREEN</button>
+                    <button class="btn btn-outline" style="padding:6px; font-size:0.7rem; margin-top:5px;" onclick="downloadReport('${safeId}')">DOWNLOAD REPORT</button>
                 </div>
             `;
         }
@@ -519,9 +526,11 @@
                         <div class="data-row"><span>Wynik:</span><b>${scoreText}</b></div>
                         <div class="data-row"><span>Alerty:</span><b style="color:${data.alerts > 0 ? 'var(--danger)' : 'inherit'}">${data.alerts}</b></div>
                     </div>
-                    <div class="card-actions">
+                    <div class="card-actions" style="flex-wrap: wrap;">
                         <button class="mini-btn btn-outline" onclick="sendDirectMessage('${id}')">MSG</button>
-                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="remoteLock('${id}')">LOCK</button>
+                        <button class="mini-btn" style="background:var(--warning); color:black" onclick="remoteLock('${id}')">LOCK</button>
+                        <button class="mini-btn" style="background:var(--danger); color:white" onclick="blackScreen('${id}')">BLACK</button>
+                        <button class="mini-btn btn-outline" style="flex: 100%; margin-top: 5px;" onclick="downloadReport('${id}')">REPORT</button>
                     </div>
                 `;
 
@@ -571,6 +580,17 @@
         }
         function sendDirectMessage(id) { const msg = prompt("Wiadomość do " + id + ":"); if(msg) socket.emit('teacher-send-msg', { targetId: id, msg }); }
         function remoteLock(id) { if(confirm("Zablokować " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "LOCKED", type: 'lock' }); }
+        function blackScreen(id) { if(confirm("ZABLOKOWAĆ EKRAN (BLACK) dla " + id + "?")) socket.emit('teacher-send-msg', { targetId: id, msg: "BLACK_SCREEN", type: 'black-screen' }); }
+        async function downloadReport(id) {
+            const res = await fetch(`/api/report/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const report = await res.json();
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `report_${id}.json`;
+            a.click();
+        }
 
         window.addEventListener('keydown', (e) => { if(e.ctrlKey && e.key === 'Enter') startGlobalTask(); });
         log("EduTrack Pro v1.2 Gotowy.");

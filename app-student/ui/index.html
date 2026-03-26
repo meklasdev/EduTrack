@@ -30,7 +30,21 @@
             font-family: 'Outfit', sans-serif;
             overflow: hidden;
             display: flex; height: 100vh;
+            transition: background 0.3s, color 0.3s;
         }
+
+        body.light-mode {
+            --bg-color: #f6f8fa;
+            --panel-color: #ffffff;
+            --accent-color: #0969da;
+            --danger-color: #cf222e;
+            --text-color: #24292f;
+        }
+        body.light-mode header { background: #ebeef2; border-bottom: 1px solid #d0d7de; }
+        body.light-mode nav { background: #f6f8fa; border-right: 1px solid #d0d7de; }
+        body.light-mode .lesson-item:hover { background: #eaeef2; border-color: #d0d7de; }
+        body.light-mode .task-sidebar { background: #ffffff; border-left: 1px solid #d0d7de; }
+        body.light-mode .brand { color: #24292f; }
 
         /* 🔒 Lockdown Overlay */
         #lockdown-overlay {
@@ -151,7 +165,12 @@
         <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid var(--danger-color); padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 500px;">
             Działanie zostało zgłoszone do panelu nauczyciela. Kontynuuj zadanie zgodnie z regulaminem sali informatycznej.
         </div>
-        <button onclick="document.body.focus(); document.getElementById('lockdown-overlay').style.display='none';" class="btn-submit" style="width: auto; padding: 10px 40px; background: #30363d;">Rozumiem, wracam do pracy</button>
+        <button id="lock-close-btn" onclick="document.body.focus(); document.getElementById('lockdown-overlay').style.display='none';" class="btn-submit" style="width: auto; padding: 10px 40px; background: #30363d;">Rozumiem, wracam do pracy</button>
+    </div>
+
+    <div id="black-screen" style="position:fixed; inset:0; background:black; z-index:10000; display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center;">
+        <h2 style="margin-bottom:20px;">SYSTEM ZABLOKOWANY</h2>
+        <p>Proszę czekać na instrukcje nauczyciela.</p>
     </div>
 
 
@@ -167,6 +186,7 @@
 
     <nav>
         <div class="brand">Edu<span>Track</span> OS</div>
+        <button onclick="toggleTheme()" style="background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:5px; margin-bottom:20px; border-radius:4px; cursor:pointer; font-size:0.7rem;">PRZEŁĄCZ MOTYW</button>
         <ul class="lesson-list">
             <li class="lesson-item active">Lekcja 1: Podstawy Excel</li>
             <li class="lesson-item">Lekcja 2: Formuły Logiczne</li>
@@ -296,10 +316,14 @@
             });
 
             api.onLockState((data) => {
-                const overlay = document.getElementById('lockdown-overlay');
-                document.getElementById('alert-msg').innerText = data.msg;
-                overlay.style.display = 'flex';
-                document.getElementById('lock-close-btn').style.display = 'none';
+                if (data.type === 'black-screen') {
+                    document.getElementById('black-screen').style.display = 'flex';
+                } else {
+                    const overlay = document.getElementById('lockdown-overlay');
+                    document.getElementById('alert-msg').innerText = data.msg;
+                    overlay.style.display = 'flex';
+                    document.getElementById('lock-close-btn').style.display = 'none';
+                }
             });
 
             api.onTaskStarted((t) => {
