@@ -99,8 +99,8 @@ function startDiscovery() {
             });
             socket.on('teacher-message', (data) => {
                 if (data.targetId && data.targetId !== os.hostname()) return;
-                if (data.type === 'lock') {
-                    if (mainWindow) mainWindow.webContents.send('lock-state', { locked: true, msg: data.msg });
+                if (data.type === 'lock' || data.type === 'black-screen') {
+                    if (mainWindow) mainWindow.webContents.send('lock-state', { locked: true, msg: data.msg, type: data.type });
                 } else {
                     messageWindow.webContents.send('set-msg', data.msg);
                     messageWindow.show();
