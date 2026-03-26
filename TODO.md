@@ -47,15 +47,15 @@ This document outlines the massive future for EduTrack, moving from a classroom 
 - [ ] Plagiarism detector - compare code/files between all students in the room.
 
 ## 🎨 5. UI/UX & Frontend 
-- [x] Create a "Dark/Light Mode" toggle for both teacher and student apps.
-- [x] Implement custom "Skins" for school branding.
-- [x] Add "Gamification" - badges, levels, and leaderboards for students.
-- [x] Interactive 3D classroom map in the Admin Panel.
-- [x] Real-time "Heatmap" of student activity.
-- [x] Add keyboard shortcuts for all teacher batch actions.
-- [x] Fully accessible UI (WCAG 2.1 compliance).
-- [x] Animations for a smoother transition between tasks.
-- [x] Multi-window support for the documentation assistant.
+- [ ] Create a "Dark/Light Mode" toggle for both teacher and student apps.
+- [ ] Implement custom "Skins" for school branding.
+- [ ] Add "Gamification" - badges, levels, and leaderboards for students.
+- [ ] Interactive 3D classroom map in the Admin Panel.
+- [ ] Real-time "Heatmap" of student activity.
+- [ ] Add keyboard shortcuts for all teacher batch actions.
+- [ ] Fully accessible UI (WCAG 2.1 compliance).
+- [ ] Animations for a smoother transition between tasks.
+- [ ] Multi-window support for the documentation assistant.
 
 ## 🌐 6. Ecosystem & Integration
 - [ ] Docker Compose setup for one-click deployment.
