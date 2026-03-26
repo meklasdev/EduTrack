@@ -1,6 +1,6 @@
 # WYMAGANIA SYSTEMOWE EDUTRACK: Egzaminy Zawodowe INF.02, INF.03, INF.04 (2025/2026)
 
-Jako Twój **Główny Architekt Systemu**, przygotowałem kompletną listę oprogramowania i narzędzi, które muszą znaleźć się w Twoim ekosystemie „EduTrack”, aby był on w pełni zgodny z wymaganiami polskich szkół technicznych.
+
 
 ---
 
