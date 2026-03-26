@@ -59,11 +59,11 @@ This document outlines the massive future for EduTrack, moving from a classroom 
 
 ## 🌐 6. Ecosystem & Integration
 - [x] Docker Compose setup for one-click deployment.
-- [x] Create a plugin system for 3rd party developers.
-- [x] Implement a "Marketplace" for sharing exam templates.
-- [x] Support for Raspberry Pi as a student terminal.
-- [x] Chrome Extension version for Chromebook-based schools.
-- [x] Automated certificate generator (PDF) for students who pass.
-- [x] Cloud-hosted version (SaaS) for remote learning schools.
+- [ ] Create a plugin system for 3rd party developers.
+- [ ] Implement a "Marketplace" for sharing exam templates.
+- [ ] Support for Raspberry Pi as a student terminal.
+- [ ] Chrome Extension version for Chromebook-based schools.
+- [ ] Automated certificate generator (PDF) for students who pass.
+- [ ] Cloud-hosted version (SaaS) for remote learning schools.
 
 ... and 1000s of smaller refinements, bug fixes, and performance boosts!
