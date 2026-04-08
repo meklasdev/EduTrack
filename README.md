@@ -184,6 +184,8 @@ EduTrack/
 | GET | `/api/report/:hostname/pdf` | Raport PDF ucznia (auth) |
 | GET | `/api/certificate/:hostname` | Certyfikat ukończenia (auth) |
 | POST | `/api/detect-plagiarism` | Porównaj pliki uczniów (auth) |
+| POST | `/api/students/:hostname/reset-alerts` | Resetuj alerty ucznia (auth) |
+| POST | `/api/students/:hostname/assign-department` | Przypisz ucznia do działu nauczyciela (auth) |
 
 ---
 

@@ -250,6 +250,38 @@ async function luckysheetToExcel(jsonStr) {
     return workbook;
 }
 
+app.post('/api/students/:hostname/reset-alerts', authMiddleware, async (req, res) => {
+    try {
+        const student = await prisma.student.update({
+            where: { hostname: req.params.hostname },
+            data: { alerts: 0, lastMatchedApp: null }
+        });
+        const deptRoom = student.departmentId ? `dept-${student.departmentId}` : null;
+        const event = { id: req.params.hostname, hostname: req.params.hostname, alerts: 0 };
+        if (deptRoom) {
+            io.to(deptRoom).emit('student-alerts-reset', event);
+        } else {
+            io.emit('student-alerts-reset', event);
+        }
+        res.json({ message: 'Alerts reset.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/students/:hostname/assign-department', authMiddleware, async (req, res) => {
+    try {
+        const { departmentId } = req.user;
+        const student = await prisma.student.update({
+            where: { hostname: req.params.hostname },
+            data: { departmentId }
+        });
+        res.json({ message: `Student assigned to your department.`, student });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/detect-plagiarism', authMiddleware, async (req, res) => {
     try {
         const { studentA, studentB } = req.body;
@@ -295,10 +327,25 @@ app.post('/api/check-excel', async (req, res) => {
         // Save a permanent copy for plagiarism detection
         await fs.copy(studentPath, plagPath);
 
-        await prisma.student.update({
+        const newScore = `${report.totalScore}/${report.maxScore}`;
+        const updatedStudentScore = await prisma.student.update({
             where: { hostname: rawHostname },
-            data: { lastScore: `${report.totalScore}/${report.maxScore}` }
-        }).catch(() => console.log(`[Database] Student ${rawHostname} not found for score update.`));
+            data: { lastScore: newScore }
+        }).catch(() => {
+            console.log(`[Database] Student ${rawHostname} not found for score update.`);
+            return null;
+        });
+
+        // Notify teacher panel about the updated score in real-time
+        if (updatedStudentScore) {
+            const deptRoom = updatedStudentScore.departmentId ? `dept-${updatedStudentScore.departmentId}` : null;
+            const scoreEvent = { id: rawHostname, hostname: rawHostname, lastScore: newScore };
+            if (deptRoom) {
+                io.to(deptRoom).emit('student-score-update', scoreEvent);
+            } else {
+                io.emit('student-score-update', scoreEvent);
+            }
+        }
 
         res.send(report);
     } catch (err) { res.status(500).send({ error: err.message }); }

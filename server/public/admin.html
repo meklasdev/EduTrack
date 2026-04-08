@@ -506,6 +506,11 @@
                     <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Ctrl+Enter</kbd> — Wypchnij zadanie</div>
                     <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Ctrl+L</kbd> — Zablokuj wszystkich</div>
                     <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Ctrl+B</kbd> — Black screen wszystkich</div>
+                    <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Ctrl+R</kbd> — Odśwież ranking</div>
+                    <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Ctrl+1</kbd> — Widok monitorowania</div>
+                    <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Ctrl+2</kbd> — Widok mapy klasy</div>
+                    <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Ctrl+3</kbd> — Widok rankingu</div>
+                    <div><kbd style="background:var(--teams-border); padding:2px 8px; border-radius:3px; font-family:monospace;">Esc</kbd> — Zamknij podgląd ekranu</div>
                 </div>
             </div>
         </div>
@@ -667,7 +672,9 @@
                         <button class="mini-btn btn-outline" onclick="sendDirectMessage('${safeId}')">MSG</button>
                         <button class="mini-btn" style="background:var(--warning);color:black" onclick="remoteLock('${safeId}')">LOCK</button>
                         <button class="mini-btn" style="background:var(--danger);color:white" onclick="blackScreen('${safeId}')">BLACK</button>
-                        <button class="mini-btn btn-outline" style="flex:100%;margin-top:4px" onclick="downloadReport('${safeId}')">📋 JSON</button>
+                        <button class="mini-btn btn-outline" style="background:rgba(78,201,148,0.12);color:var(--success);border-color:rgba(78,201,148,0.3);" onclick="resetAlerts('${safeId}')">↺ RESET</button>
+                        <button class="mini-btn btn-outline" style="flex:100%;margin-top:4px" onclick="assignDepartment('${safeId}')">🏫 Przypisz do mnie</button>
+                        <button class="mini-btn btn-outline" style="flex:100%" onclick="downloadReport('${safeId}')">📋 JSON</button>
                         <button class="mini-btn btn-outline" style="flex:1" onclick="downloadPDFReport('${safeId}')">📄 PDF</button>
                         <button class="mini-btn" style="flex:1;background:var(--success);color:black" onclick="downloadCertificate('${safeId}')">🎓 CERT</button>
                     </div>
@@ -719,8 +726,34 @@
                 log(`Uczeń połączony: ${id}`);
                 toast(`🖥️ Nowy uczeń: ${id}`, 'success');
             }
+            // Preserve existing lastScore if not in the new agent-report
+            if (!data.lastScore && students[id].data.lastScore) {
+                data.lastScore = students[id].data.lastScore;
+            }
             students[id].data = data;
             updateUI();
+        });
+
+        socket.on('student-score-update', (data) => {
+            const id = data.id || data.hostname;
+            if (!id) return;
+            if (students[id]) {
+                students[id].data.lastScore = data.lastScore;
+                updateUI();
+                log(`✅ Wynik ucznia ${id}: ${data.lastScore}`);
+                toast(`📊 ${id}: wynik ${data.lastScore}`, 'success');
+            }
+        });
+
+        socket.on('student-alerts-reset', (data) => {
+            const id = data.id || data.hostname;
+            if (!id) return;
+            if (students[id]) {
+                students[id].data.alerts = 0;
+                updateUI();
+                log(`↺ Alerty zresetowane dla: ${id}`);
+                toast(`↺ Alerty zresetowane: ${id}`, 'success');
+            }
         });
 
         socket.on('teacher-screenshot', (data) => {
@@ -813,6 +846,32 @@
         }
 
         // --- Reports (use fetch+blob to avoid exposing token in URL/logs) ---
+        async function resetAlerts(id) {
+            if (!confirm(`Zresetować alerty dla ${id}?`)) return;
+            try {
+                const res = await fetch(`/api/students/${encodeURIComponent(id)}/reset-alerts`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error(await res.text());
+                toast(`↺ Alerty zresetowane: ${id}`, 'success');
+                log(`↺ Alerty zresetowane ręcznie dla: ${id}`);
+            } catch (e) { toast('Błąd resetu alertów: ' + e.message, 'error'); }
+        }
+
+        async function assignDepartment(id) {
+            if (!confirm(`Przypisać ucznia ${id} do Twojego działu?`)) return;
+            try {
+                const res = await fetch(`/api/students/${encodeURIComponent(id)}/assign-department`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error(await res.text());
+                toast(`🏫 Uczeń ${id} przypisany do Twojego działu.`, 'success');
+                log(`🏫 Uczeń ${id} przypisany do działu.`);
+            } catch (e) { toast('Błąd przypisywania: ' + e.message, 'error'); }
+        }
+
         async function downloadPDFReport(id) {
             try {
                 const res = await fetch(`/api/report/${encodeURIComponent(id)}/pdf`, {
@@ -939,6 +998,10 @@
             if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); startGlobalTask(); }
             if (e.ctrlKey && e.key === 'l') { e.preventDefault(); lockAll(); }
             if (e.ctrlKey && e.key === 'b') { e.preventDefault(); blackScreenAll(); }
+            if (e.ctrlKey && e.key === 'r') { e.preventDefault(); refreshLeaderboard(); }
+            if (e.ctrlKey && e.key === '1') { e.preventDefault(); switchView('monitoring'); }
+            if (e.ctrlKey && e.key === '2') { e.preventDefault(); switchView('map'); }
+            if (e.ctrlKey && e.key === '3') { e.preventDefault(); showLeaderboard(); }
         });
 
         log('EduTrack Pro v1.2 gotowy.');
