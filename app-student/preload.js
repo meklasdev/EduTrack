@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getHostname: () => ipcRenderer.invoke('get-hostname'),
     onFocusLost: (callback) => ipcRenderer.on('focus-lost', (_event) => callback()),
     onFocusGained: (callback) => ipcRenderer.on('focus-gained', (_event) => callback()),
-    submitTask: (data) => ipcRenderer.send('submit-task', data)
+    submitTask: (data) => ipcRenderer.send('submit-task', data),
+    forceQuit: () => ipcRenderer.send('force-quit')
 });

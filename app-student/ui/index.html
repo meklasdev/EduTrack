@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTrack Terminal [STUDENT MODE]</title>
-    <link href="https:
-
-
-    <link rel="stylesheet" href="https:
-    <link rel="stylesheet" href="https:
-    <script src="https:
-    <script src="https:
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:ital,wght@0,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jspreadsheet.css" type="text/css">
+    <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css">
+    <script src="https://jsuites.net/v4/jsuites.js"></script>
+    <script src="https://bossanova.uk/jspreadsheet/v4/jspreadsheet.js"></script>
 
     <style>
         :root {
@@ -186,58 +185,74 @@
 
     <nav>
         <div class="brand">Edu<span>Track</span> OS</div>
-        <button onclick="toggleTheme()" style="background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:5px; margin-bottom:20px; border-radius:4px; cursor:pointer; font-size:0.7rem;">PRZEŁĄCZ MOTYW</button>
+
+        <div style="display:flex; gap:6px; margin-bottom:16px;">
+            <button onclick="toggleTheme()" style="flex:1; background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:5px; border-radius:4px; cursor:pointer; font-size:0.68rem; font-weight:700;">☀/🌙</button>
+        </div>
+
+        <!-- Connection status -->
+        <div style="display:flex; align-items:center; gap:8px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; margin-bottom:16px; font-size:0.72rem;">
+            <div class="status-dot" id="status-dot" style="flex-shrink:0;"></div>
+            <span id="server-info" style="color:#8b949e;">Szukanie serwera LAN...</span>
+        </div>
+
+        <!-- Exam timer -->
+        <div id="timer-block" style="display:none; padding:12px; background:rgba(88,166,255,0.08); border:1px solid rgba(88,166,255,0.2); border-radius:8px; margin-bottom:16px; text-align:center;">
+            <div style="font-size:0.65rem; color:#8b949e; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Czas egzaminu</div>
+            <div id="timer" style="font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:700; color:var(--accent-color);">00:00</div>
+        </div>
+
+        <!-- Lesson list (decorative) -->
+        <div style="font-size:0.65rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#484f58; margin-bottom:10px;">Moduły</div>
         <ul class="lesson-list">
-            <li class="lesson-item active">Lekcja 1: Podstawy Excel</li>
-            <li class="lesson-item">Lekcja 2: Formuły Logiczne</li>
-            <li class="lesson-item">Lekcja 3: Tabele i wykresy</li>
-            <li class="lesson-item">Egzamin: Arkusz Końcowy</li>
+            <li class="lesson-item active">Arkusze kalkulacyjne</li>
+            <li class="lesson-item">Formuły i funkcje</li>
+            <li class="lesson-item">Bazy danych SQL</li>
+            <li class="lesson-item">Sieci: INF.02</li>
         </ul>
-        <div id="server-info">Szukanie serwera LAN...</div>
+
+        <!-- Anti-cheat status -->
+        <div style="margin-top:auto; padding:10px; background:rgba(63,185,80,0.08); border:1px solid rgba(63,185,80,0.15); border-radius:8px; font-size:0.7rem; color:#3fb950;">
+            🛡️ Anti-Cheat: Aktywny<br>
+            <span style="color:#484f58;">Monitoring procesów: 🟢</span>
+        </div>
     </nav>
 
 
     <main>
         <header>
-            <div><strong>Zadanie:</strong> Obliczanie sumy przychodów</div>
+            <div id="header-task-title" style="font-size:0.85rem;"><strong>EduTrack</strong> — Oczekiwanie na zadanie</div>
             <div style="display: flex; align-items: center; gap: 20px;">
                 <span id="server-address" style="font-size: 0.8rem; color: #8b949e;">Tryb Offline</span>
-                <span class="status-dot" id="status-dot"></span>
             </div>
         </header>
 
         <div class="workspace">
             <div class="editor-container">
                 <div class="editor-header">
-                    <span>student_worksheet.xlsx</span>
+                    <span id="filename-label">student_worksheet.xlsx</span>
                     <span style="font-size: 0.8rem; color: #8b949e;">Tryb: Arkusz Kalkulacyjny</span>
                 </div>
                 <div class="editor-view" id="spreadsheet">
-                    <div style="padding: 20px; color: #000;">
-                        <p style="color: #58a6ff;">&gt; Połączono z centralnym systemem sprawdzania.</p>
-                        <p>Gotowy do analizy pliku .xlsx</p>
-                        <p style="margin-top: 40px; opacity: 0.5;">[Wizualizacja edytora pojawi się po otwarciu zadania]</p>
+                    <div style="padding: 40px; text-align:center; color:#484f58;">
+                        <div style="font-size: 2rem; margin-bottom:20px; opacity:0.3;">📋</div>
+                        <p style="color: #58a6ff; font-weight:700; margin-bottom:8px;">Gotowy do pracy</p>
+                        <p style="font-size:0.85rem;">Oczekuję na uruchomienie zadania przez nauczyciela...</p>
                     </div>
                 </div>
             </div>
 
             <div class="task-sidebar">
-                <h3 id="task-title-sidebar">Cel zadania:</h3>
-                <div id="task-desc-sidebar">
+                <h3 id="task-title-sidebar" style="font-size:0.95rem; margin-bottom:8px;">Cel zadania:</h3>
+                <div id="task-desc-sidebar" style="font-size:0.82rem; color:#8b949e; line-height:1.6;">
                     <p>Oczekuję na rozpoczęcie zadania przez nauczyciela.</p>
                 </div>
                 
-                <div id="results" style="margin-top: 20px; font-weight: bold; color: var(--accent-color);"></div>
+                <div id="results" style="margin-top: 16px;"></div>
 
-                <button class="btn" onclick="document.getElementById('docs-panel').style.display='flex'" style="background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:8px; margin-top:10px; width:100%; border-radius:6px; cursor:pointer;">📚 OTWÓRZ POMOC</button>
+                <button onclick="document.getElementById('docs-panel').style.display='flex'" style="background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:8px; margin-top:10px; width:100%; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.75rem; text-transform:uppercase; font-family:inherit;">📚 OTWÓRZ POMOC</button>
 
-                <div class="monitor-box">
-                    <strong>Deep Monitor (Status):</strong><br>
-                    <span>Skanowanie procesów: Aktywne 🟢</span><br>
-                    <span>Anti-Cheat: On 🛡️</span>
-                </div>
-                
-                <button class="btn-submit" id="check-btn">Sprawdź zadanie</button>
+                <button class="btn-submit" id="check-btn" disabled>✔ Sprawdź zadanie</button>
             </div>
         </div>
     </main>
@@ -281,25 +296,42 @@
             const offlineTask = localStorage.getItem('current_task_offline');
             if (offlineTask) {
                 const t = JSON.parse(offlineTask);
-                document.getElementById('task-title-sidebar').innerText = t.title + " (OFFLINE)";
+                document.getElementById('task-title-sidebar').innerText = t.title + ' (OFFLINE)';
+                document.getElementById('header-task-title').innerHTML = `<strong>Zadanie:</strong> ${t.title}`;
                 document.getElementById('task-desc-sidebar').innerHTML = t.description.replace(/\n/g, '<br>');
-                setTimeout(() => { if(!jexcelInstance) initSpreadsheet(); }, 1000);
+                document.getElementById('check-btn').disabled = false;
+                setTimeout(() => { if (!jexcelInstance) initSpreadsheet(); }, 1000);
             }
         } catch(e) {}
 
         let serverUrl = '';
+        let examStartTime = null;
+        let timerInterval = null;
+
+        function startTimer() {
+            examStartTime = Date.now();
+            document.getElementById('timer-block').style.display = 'block';
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const s = Math.floor((Date.now() - examStartTime) / 1000);
+                const m = String(Math.floor(s / 60)).padStart(2, '0');
+                const sec = String(s % 60).padStart(2, '0');
+                document.getElementById('timer').innerText = `${m}:${sec}`;
+            }, 1000);
+        }
 
         function initSpreadsheet() {
             document.getElementById('spreadsheet').innerHTML = '';
             jexcelInstance = jspreadsheet(document.getElementById('spreadsheet'), {
                 data: [[]],
-                minDimensions: [15, 25],
+                minDimensions: [20, 40],
                 columnDrag: true,
                 toolbar: [
                     { type: 'i', content: 'undo', onclick: () => jexcelInstance.undo() },
                     { type: 'i', content: 'redo', onclick: () => jexcelInstance.redo() },
-                    { type: 'select', k: 'font-family', v: ['Arial', 'Verdana'] },
-                    { type: 'select', k: 'font-size', v: ['9px', '10px', '11px', '12px', '13px', '14px', '15px'] },
+                    { type: 'i', content: 'save', onclick: () => document.getElementById('check-btn').click() },
+                    { type: 'select', k: 'font-family', v: ['Arial', 'Calibri', 'Verdana', 'Times New Roman'] },
+                    { type: 'select', k: 'font-size', v: ['9px', '10px', '11px', '12px', '13px', '14px', '16px'] },
                     { type: 'i', content: 'format_bold', k: 'font-weight', v: 'bold' },
                     { type: 'i', content: 'format_italic', k: 'font-style', v: 'italic' },
                     { type: 'i', content: 'format_color_text', k: 'color' },
@@ -314,30 +346,28 @@
             document.body.classList.toggle('light-mode');
             localStorage.setItem('student_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
         }
-        if(localStorage.getItem('student_theme') === 'light') document.body.classList.add('light-mode');
+        if (localStorage.getItem('student_theme') === 'light') document.body.classList.add('light-mode');
 
         if (api) {
             api.onServerFound((data) => {
                 serverUrl = data.address;
                 document.getElementById('status-dot').classList.add('status-connected');
-                document.getElementById('server-address').innerText = "Serwer: " + data.address;
-                document.getElementById('server-info').innerText = "Serwer połączony (Real-Time)";
+                document.getElementById('server-address').innerText = 'Serwer: ' + data.address;
+                document.getElementById('server-info').innerText = 'Połączono z serwerem ✓';
             });
 
             api.onSecurityAlert((data) => {
-                document.getElementById("lock-close-btn").style.display = "block";
-                const overlay = document.getElementById('lockdown-overlay');
+                document.getElementById('lock-close-btn').style.display = 'block';
                 document.getElementById('alert-msg').innerText = data.msg;
-                overlay.style.display = 'flex';
+                document.getElementById('lockdown-overlay').style.display = 'flex';
             });
 
             api.onLockState((data) => {
                 if (data.type === 'black-screen') {
                     document.getElementById('black-screen').style.display = 'flex';
                 } else {
-                    const overlay = document.getElementById('lockdown-overlay');
                     document.getElementById('alert-msg').innerText = data.msg;
-                    overlay.style.display = 'flex';
+                    document.getElementById('lockdown-overlay').style.display = 'flex';
                     document.getElementById('lock-close-btn').style.display = 'none';
                 }
             });
@@ -345,54 +375,65 @@
             api.onTaskStarted((t) => {
                 localStorage.setItem('current_task_offline', JSON.stringify(t));
                 document.getElementById('task-title-sidebar').innerText = t.title;
+                document.getElementById('header-task-title').innerHTML = `<strong>Zadanie:</strong> ${t.title}`;
                 document.getElementById('task-desc-sidebar').innerHTML = t.description.replace(/\n/g, '<br>');
+                document.getElementById('filename-label').innerText = t.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.xlsx';
+                document.getElementById('check-btn').disabled = false;
                 initSpreadsheet();
+                startTimer();
             });
         }
 
         document.getElementById('check-btn').onclick = async () => {
-            if (!jexcelInstance) return alert("Brak aktywnego zadania.");
+            if (!jexcelInstance) return;
+            const btn = document.getElementById('check-btn');
+            btn.disabled = true;
+            btn.innerText = '⏳ Sprawdzam...';
 
             const results = document.getElementById('results');
-            results.innerHTML = "Analizowanie danych...";
+            results.innerHTML = '<div style="color:var(--accent-color);font-size:0.8rem;">Analizowanie danych...</div>';
 
             const rawData = jexcelInstance.getData();
-            const luckysheetData = [{
-                name: "Arkusz1",
-                celldata: []
-            }];
+            const luckysheetData = [{ name: 'Arkusz1', celldata: [] }];
 
             rawData.forEach((row, r) => {
                 row.forEach((cell, c) => {
                     const formula = jexcelInstance.getFormula([c, r]);
                     const style = jexcelInstance.getStyle([c, r]);
                     const isBold = style && style.match(/font-weight:\s*bold/);
-
-                    if (cell !== "" || formula || isBold) {
-                        luckysheetData[0].celldata.push({
-                            r: r, c: c,
-                            v: {
-                                v: cell,
-                                f: formula ? "=" + formula : null,
-                                m: cell,
-                                bl: isBold ? 1 : 0
-                            }
-                        });
+                    if (cell !== '' || formula || isBold) {
+                        luckysheetData[0].celldata.push({ r, c, v: { v: cell, f: formula ? '=' + formula : null, m: cell, bl: isBold ? 1 : 0 } });
                     }
                 });
             });
 
             try {
+                const hostname = api ? await api.getHostname() : (location.hostname || 'student-web');
                 const res = await fetch(`${serverUrl}/api/check-excel`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostname: await api.getHostname(), sheetJson: JSON.stringify(luckysheetData) })
+                    body: JSON.stringify({ hostname, sheetJson: JSON.stringify(luckysheetData) })
                 });
                 const report = await res.json();
-                results.innerHTML = `WYNIK: ${report.totalScore}/${report.maxScore}`;
+                if (!res.ok) throw new Error(report.error || 'Błąd serwera');
+
+                const pct = report.maxScore > 0 ? Math.round((report.totalScore / report.maxScore) * 100) : 0;
+                const color = pct >= 50 ? 'var(--accent-color)' : '#f85149';
+                results.innerHTML = `
+                    <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(88,166,255,0.2);border-radius:8px;padding:12px;">
+                        <div style="font-size:1.3rem;font-weight:700;color:${color};margin-bottom:4px;">${report.totalScore} / ${report.maxScore}</div>
+                        <div style="height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;margin:8px 0;">
+                            <div id="score-bar-fill" style="height:100%;width:0%;background:${color};border-radius:3px;transition:width 1s ease-out;"></div>
+                        </div>
+                        <div style="font-size:0.72rem;color:#8b949e;">Poprawność: ${pct}%</div>
+                    </div>
+                `;
+                setTimeout(() => { const f = document.getElementById('score-bar-fill'); if (f) f.style.width = pct + '%'; }, 50);
             } catch (e) {
-                results.innerHTML = "Błąd połączenia.";
+                results.innerHTML = `<div style="color:#f85149;font-size:0.8rem;">Błąd: ${e.message}</div>`;
             }
+            btn.disabled = false;
+            btn.innerText = '✔ Sprawdź zadanie';
         };
     </script>
 </body>

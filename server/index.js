@@ -268,8 +268,16 @@ app.post('/api/detect-plagiarism', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/check-excel', async (req, res) => {
-    const studentPath = path.join(__dirname, 'test-data/temp_upload.xlsx');
-    const hostname = req.body.hostname || "unknown";
+    const rawHostname = req.body.hostname || `anon_${Date.now()}`;
+    const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const testDataDir = path.resolve(__dirname, 'test-data');
+    // Resolve full paths and verify they stay within test-data/ to prevent path traversal
+    const studentPath  = path.resolve(testDataDir, `submission_${hostname}.xlsx`);
+    const plagPath     = path.resolve(testDataDir, `plag_${hostname}.xlsx`);
+    const templatePath = path.resolve(testDataDir, 'template.xlsx');
+    if (!studentPath.startsWith(testDataDir) || !plagPath.startsWith(testDataDir)) {
+        return res.status(400).send({ error: 'Invalid hostname.' });
+    }
     try {
         if (req.files && req.files.studentFile) {
             await req.files.studentFile.mv(studentPath);
@@ -278,12 +286,19 @@ app.post('/api/check-excel', async (req, res) => {
             await workbook.xlsx.writeFile(studentPath);
         } else return res.status(400).send({ error: 'No data.' });
 
-        const report = await excelChecker.analyze(studentPath, path.join(__dirname, 'test-data/template.xlsx'));
+        if (!fs.existsSync(templatePath)) {
+            return res.status(503).send({ error: 'No grading template uploaded yet. Teacher must upload a template first.' });
+        }
+
+        const report = await excelChecker.analyze(studentPath, templatePath);
+
+        // Save a permanent copy for plagiarism detection
+        await fs.copy(studentPath, plagPath);
 
         await prisma.student.update({
-            where: { hostname: hostname },
+            where: { hostname: rawHostname },
             data: { lastScore: `${report.totalScore}/${report.maxScore}` }
-        }).catch(() => console.log(`[Database] Student ${hostname} not found for score update.`));
+        }).catch(() => console.log(`[Database] Student ${rawHostname} not found for score update.`));
 
         res.send(report);
     } catch (err) { res.status(500).send({ error: err.message }); }
@@ -294,6 +309,8 @@ io.on('connection', (socket) => {
         try {
             const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'edutrack-jwt-secret-key-2025');
             socket.join(`dept-${decoded.departmentId}`);
+            socket.data.teacherId = decoded.id;
+            socket.data.departmentId = decoded.departmentId;
             console.log(`[Socket] Teacher ${decoded.username} joined dept-${decoded.departmentId}`);
         } catch (err) {
             console.log('[Socket] Teacher auth failed');
@@ -427,11 +444,19 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-task', (data) => {
+        if (!socket.data.teacherId) {
+            console.log('[Socket] Unauthorized start-task attempt blocked');
+            return;
+        }
         currentTask = { ...data, startTime: Date.now() };
         io.emit('task-started', currentTask);
     });
 
     socket.on('teacher-send-msg', (data) => {
+        if (!socket.data.teacherId) {
+            console.log('[Socket] Unauthorized teacher-send-msg attempt blocked');
+            return;
+        }
         if (data.targetId) {
             io.to(data.targetId).emit('teacher-message', data);
         } else {
