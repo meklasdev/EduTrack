@@ -440,15 +440,35 @@ async function saveSubmission(file, hostname, ext) {
     return dest;
 }
 
+/** Helper: persist score to DB and notify teacher panel via Socket.io */
+async function saveScoreAndNotify(rawHostname, totalScore, maxScore) {
+    const newScore = `${totalScore}/${maxScore}`;
+    const updated = await prisma.student.update({
+        where: { hostname: rawHostname },
+        data: { lastScore: newScore }
+    }).catch(() => null);
+    if (updated) {
+        const deptRoom = updated.departmentId ? `dept-${updated.departmentId}` : null;
+        const event = { id: rawHostname, hostname: rawHostname, lastScore: newScore };
+        if (deptRoom) {
+            io.to(deptRoom).emit('student-score-update', event);
+        } else {
+            io.emit('student-score-update', event);
+        }
+    }
+}
+
 // .docx grading
 app.post('/api/check-docx', teacherActionLimiter, async (req, res) => {
     try {
         if (!req.files?.studentFile) return res.status(400).json({ error: 'No studentFile.' });
-        const hostname = (req.body.hostname || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const rawHostname = (req.body.hostname || `anon_${Date.now()}`);
+        const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
         const studentPath  = await saveSubmission(req.files.studentFile, hostname, 'docx');
         const templatePath = path.resolve(testDataDir, 'template.docx');
         if (!fs.existsSync(templatePath)) return res.status(503).json({ error: 'No docx template uploaded yet.' });
         const report = await gradingService.analyzeDocx(studentPath, templatePath);
+        await saveScoreAndNotify(rawHostname, report.totalScore, report.maxScore);
         res.json(report);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -464,11 +484,13 @@ app.post('/api/upload-template-docx', authMiddleware, teacherActionLimiter, asyn
 app.post('/api/check-pptx', teacherActionLimiter, async (req, res) => {
     try {
         if (!req.files?.studentFile) return res.status(400).json({ error: 'No studentFile.' });
-        const hostname = (req.body.hostname || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const rawHostname = (req.body.hostname || `anon_${Date.now()}`);
+        const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
         const studentPath  = await saveSubmission(req.files.studentFile, hostname, 'pptx');
         const templatePath = path.resolve(testDataDir, 'template.pptx');
         if (!fs.existsSync(templatePath)) return res.status(503).json({ error: 'No pptx template uploaded yet.' });
         const report = gradingService.analyzePptx(studentPath, templatePath);
+        await saveScoreAndNotify(rawHostname, report.totalScore, report.maxScore);
         res.json(report);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -483,11 +505,13 @@ app.post('/api/upload-template-pptx', authMiddleware, teacherActionLimiter, asyn
 app.post('/api/check-sql', teacherActionLimiter, async (req, res) => {
     try {
         if (!req.files?.studentFile) return res.status(400).json({ error: 'No studentFile.' });
-        const hostname = (req.body.hostname || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const rawHostname = (req.body.hostname || `anon_${Date.now()}`);
+        const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
         const studentPath  = await saveSubmission(req.files.studentFile, hostname, 'sql');
         const templatePath = path.resolve(testDataDir, 'template.sql');
         if (!fs.existsSync(templatePath)) return res.status(503).json({ error: 'No sql template uploaded yet.' });
         const report = await gradingService.analyzeSQL(studentPath, templatePath);
+        await saveScoreAndNotify(rawHostname, report.totalScore, report.maxScore);
         res.json(report);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -502,11 +526,13 @@ app.post('/api/upload-template-sql', authMiddleware, teacherActionLimiter, async
 app.post('/api/check-pkt', teacherActionLimiter, async (req, res) => {
     try {
         if (!req.files?.studentFile) return res.status(400).json({ error: 'No studentFile.' });
-        const hostname = (req.body.hostname || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const rawHostname = (req.body.hostname || `anon_${Date.now()}`);
+        const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
         const studentPath  = await saveSubmission(req.files.studentFile, hostname, 'pkt');
         const templatePath = path.resolve(testDataDir, 'template.pkt');
         if (!fs.existsSync(templatePath)) return res.status(503).json({ error: 'No pkt template uploaded yet.' });
         const report = gradingService.analyzePkt(studentPath, templatePath);
+        await saveScoreAndNotify(rawHostname, report.totalScore, report.maxScore);
         res.json(report);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -523,13 +549,24 @@ app.post('/api/check-graphics', teacherActionLimiter, async (req, res) => {
         if (!req.files?.studentFile) return res.status(400).json({ error: 'No studentFile.' });
         const fmt = (req.body.format || 'svg').toLowerCase();
         if (!['svg', 'xcf'].includes(fmt)) return res.status(400).json({ error: 'format must be svg or xcf.' });
-        const hostname = (req.body.hostname || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const rawHostname = (req.body.hostname || `anon_${Date.now()}`);
+        const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
         const studentPath  = await saveSubmission(req.files.studentFile, hostname, fmt);
         const templatePath = path.resolve(testDataDir, `template.${fmt}`);
         if (!fs.existsSync(templatePath)) return res.status(503).json({ error: `No ${fmt} template uploaded yet.` });
         const report = gradingService.analyzeGraphicsFile(studentPath, templatePath, fmt);
+        await saveScoreAndNotify(rawHostname, report.totalScore, report.maxScore);
         res.json(report);
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Teacher uploads graphics template (SVG or XCF)
+app.post('/api/upload-template-graphics', authMiddleware, teacherActionLimiter, async (req, res) => {
+    if (!req.files?.template) return res.status(400).send('No template.');
+    const fmt = (req.body.format || 'svg').toLowerCase();
+    if (!['svg', 'xcf'].includes(fmt)) return res.status(400).json({ error: 'format must be svg or xcf.' });
+    await req.files.template.mv(path.join(testDataDir, `template.${fmt}`));
+    res.json({ message: `${fmt.toUpperCase()} template updated.` });
 });
 
 // C++ / Python code grading (with optional AI style check via Ollama)
@@ -538,7 +575,8 @@ app.post('/api/check-code', teacherActionLimiter, async (req, res) => {
         if (!req.files?.studentFile) return res.status(400).json({ error: 'No studentFile.' });
         const lang = (req.body.language || 'python').toLowerCase();
         if (!['python', 'cpp', 'c'].includes(lang)) return res.status(400).json({ error: 'language must be python, cpp or c.' });
-        const hostname = (req.body.hostname || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const rawHostname = (req.body.hostname || `anon_${Date.now()}`);
+        const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
         const ext = lang === 'python' ? 'py' : 'cpp';
         const studentPath = await saveSubmission(req.files.studentFile, hostname, ext);
         const opts = { input: req.body.input, expectedOutput: req.body.expectedOutput };
@@ -557,6 +595,7 @@ app.post('/api/check-code', teacherActionLimiter, async (req, res) => {
             report.aiGrade = ai;
         }
 
+        await saveScoreAndNotify(rawHostname, report.totalScore, report.maxScore);
         res.json(report);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -565,12 +604,14 @@ app.post('/api/check-code', teacherActionLimiter, async (req, res) => {
 app.post('/api/check-pcap', teacherActionLimiter, async (req, res) => {
     try {
         if (!req.files?.studentFile) return res.status(400).json({ error: 'No studentFile.' });
-        const hostname = (req.body.hostname || `anon_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const rawHostname = (req.body.hostname || `anon_${Date.now()}`);
+        const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
         const studentPath  = await saveSubmission(req.files.studentFile, hostname, 'pcap');
         const templatePath = path.resolve(testDataDir, 'template.pcap');
         if (!fs.existsSync(templatePath)) return res.status(503).json({ error: 'No pcap template uploaded yet.' });
         const criteria = req.body.criteria ? JSON.parse(req.body.criteria) : {};
         const report = gradingService.analyzePcap(studentPath, templatePath, criteria);
+        await saveScoreAndNotify(rawHostname, report.totalScore, report.maxScore);
         res.json(report);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
