@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack — Asystent Dokumentacji</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --panel: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --text: #c9d1d9;
+            --muted: #8b949e;
+            --danger: #f85149;
+            --success: #3fb950;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        header h1 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        header h1 span { color: var(--accent); }
+        .search-bar {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 14px;
+            color: var(--text);
+            font-size: 0.88rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-bar:focus { border-color: var(--accent); }
+        .search-bar::placeholder { color: var(--muted); }
+
+        .filter-row {
+            display: flex;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .chip {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: none;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: 0.15s;
+        }
+        .chip.active, .chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(88,166,255,0.08);
+        }
+
+        .doc-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .doc-list::-webkit-scrollbar { width: 6px; }
+        .doc-list::-webkit-scrollbar-track { background: transparent; }
+        .doc-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .doc-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .doc-card:hover { border-color: var(--accent); transform: translateX(2px); }
+        .doc-cat {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .doc-title {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.92rem;
+            margin-bottom: 6px;
+        }
+        .doc-desc {
+            font-size: 0.82rem;
+            color: var(--text);
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .doc-example {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: #a5d6ff;
+            word-break: break-all;
+        }
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 60px 0;
+            font-size: 0.9rem;
+        }
+        .empty .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+        footer {
+            padding: 10px 20px;
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-align: center;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Edu<span>Track</span> &mdash; Asystent</h1>
+        <input type="text" class="search-bar" id="search" placeholder="Szukaj formuły, polecenia, składni...">
+    </header>
+
+    <div class="filter-row" id="filter-row"></div>
+
+    <div class="doc-list" id="doc-list"></div>
+
+    <footer>Naciśnij Ctrl+W lub Alt+F4, aby zamknąć to okno &mdash; nie przerywa egzaminu</footer>
+
+    <script>
+        const DOCS = [
+            { c: 'Excel', t: 'SUMA(zakres)', d: 'Dodaje wszystkie liczby w zakresie komórek.', e: '=SUMA(A1:A10)' },
+            { c: 'Excel', t: 'ŚREDNIA(zakres)', d: 'Zwraca średnią arytmetyczną argumentów.', e: '=ŚREDNIA(B1:B5)' },
+            { c: 'Excel', t: 'JEŻELI(test; prawda; fałsz)', d: 'Sprawdza czy warunek jest spełniony i zwraca jedną z dwóch wartości.', e: "=JEŻELI(C1>10; 'OK'; 'BŁĄD')" },
+            { c: 'Excel', t: 'WYSZUKAJ.PIONOWO(szukana; tabela; nr_kol; [zakres])', d: 'Szuka wartości w pierwszej kolumnie tabeli i zwraca wartość z tej samej wiersza.', e: '=WYSZUKAJ.PIONOWO(D1; A1:B10; 2; 0)' },
+            { c: 'Excel', t: 'LICZ.JEŻELI(zakres; kryterium)', d: 'Zlicza komórki w zakresie spełniające podany warunek.', e: "=LICZ.JEŻELI(A1:A20; '>50')" },
+            { c: 'Excel', t: 'SUMA.JEŻELI(zakres; kryterium; zakres_sumy)', d: 'Sumuje komórki spełniające podany warunek.', e: "=SUMA.JEŻELI(B1:B10; '>0'; C1:C10)" },
+            { c: 'Excel', t: 'MAX / MIN(zakres)', d: 'Zwraca maksymalną / minimalną wartość z zakresu.', e: '=MAX(A1:A50)' },
+            { c: 'Excel', t: 'ZAOKR(liczba; cyfry)', d: 'Zaokrągla liczbę do określonej liczby cyfr.', e: '=ZAOKR(3.14159; 2)' },
+            { c: 'INF.02', t: 'Adresacja IPv4', d: 'Maska /24 = 255.255.255.0 (256 adresów, 254 użytkowe). Brama domyślna zazwyczaj .1 lub .254.', e: '192.168.1.0/24' },
+            { c: 'INF.02', t: 'Polecenie PING', d: 'Sprawdza łączność IP z hostem docelowym (ICMP Echo).', e: 'ping 127.0.0.1' },
+            { c: 'INF.02', t: 'IPCONFIG', d: 'Wyświetla konfigurację sieciową interfejsów w systemie Windows.', e: 'ipconfig /all' },
+            { c: 'INF.02', t: 'Modele OSI / TCP-IP', d: 'OSI: 7 warstw. TCP/IP: 4 warstwy (sieciowa, internetu, transportu, aplikacji).', e: 'TCP/IP: warstwa 3 = Internet (IP)' },
+            { c: 'INF.03', t: 'HTML: Tabela', d: 'Struktura tabeli: &lt;table&gt;, &lt;tr&gt; (wiersz), &lt;td&gt; (komórka), &lt;th&gt; (nagłówek).', e: '<table><tr><td>Dane</td></tr></table>' },
+            { c: 'INF.03', t: 'SQL: SELECT', d: 'Wybieranie danych z bazy. Można filtrować WHERE i sortować ORDER BY.', e: "SELECT * FROM uczniowie WHERE klasa='1A' ORDER BY nazwisko;" },
+            { c: 'INF.03', t: 'SQL: INSERT', d: 'Wstawianie nowego rekordu do tabeli.', e: "INSERT INTO uczniowie(imie, klasa) VALUES('Jan','1A');" },
+            { c: 'INF.03', t: 'SQL: UPDATE', d: 'Aktualizacja istniejących rekordów. Zawsze używaj WHERE!', e: "UPDATE uczniowie SET klasa='2A' WHERE id=5;" },
+            { c: 'INF.03', t: 'CSS: Box Model', d: 'Każdy element HTML ma: margin, border, padding i content.', e: 'box-sizing: border-box;' },
+            { c: 'C++', t: 'cout <<', d: 'Wypisywanie danych na ekran standardowy.', e: 'std::cout << "Hello World" << std::endl;' },
+            { c: 'C++', t: 'cin >>', d: 'Wczytywanie danych od użytkownika.', e: 'int x; std::cin >> x;' },
+            { c: 'C++', t: 'Pętla for', d: 'Iteruje po zakresie ze zmienną licznika.', e: 'for (int i = 0; i < 10; i++) { ... }' },
+            { c: 'Python', t: 'print()', d: 'Wypisuje dane na standardowe wyjście.', e: "print('Hello', name, sep=', ')" },
+            { c: 'Python', t: 'Lista', d: 'Zmienna tablica elementów. Indeksowanie od 0.', e: "lst = [1, 2, 3]; lst.append(4)" },
+            { c: 'Python', t: 'Słownik', d: 'Struktura klucz-wartość (hash map).', e: "d = {'a': 1, 'b': 2}; d['c'] = 3" },
+        ];
+
+        let activeFilter = 'Wszystkie';
+        const categories = ['Wszystkie', ...new Set(DOCS.map(d => d.c))];
+
+        function renderFilters() {
+            const row = document.getElementById('filter-row');
+            row.innerHTML = categories.map(cat => `
+                <button class="chip ${cat === activeFilter ? 'active' : ''}" onclick="setFilter('${cat}')">${cat}</button>
+            `).join('');
+        }
+
+        function setFilter(cat) {
+            activeFilter = cat;
+            renderFilters();
+            renderDocs(document.getElementById('search').value);
+        }
+
+        function renderDocs(query) {
+            const list = document.getElementById('doc-list');
+            const q = query.toLowerCase();
+            const filtered = DOCS.filter(d => {
+                const matchCat = activeFilter === 'Wszystkie' || d.c === activeFilter;
+                const matchQuery = !q || d.t.toLowerCase().includes(q) || d.d.toLowerCase().includes(q) || d.c.toLowerCase().includes(q) || d.e.toLowerCase().includes(q);
+                return matchCat && matchQuery;
+            });
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty"><div class="icon">🔍</div>Brak wyników dla podanej frazy.</div>';
+                return;
+            }
+            list.innerHTML = filtered.map(d => `
+                <div class="doc-card">
+                    <div class="doc-cat">${d.c}</div>
+                    <div class="doc-title">${d.t}</div>
+                    <div class="doc-desc">${d.d}</div>
+                    <div class="doc-example">${d.e}</div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('search').addEventListener('input', (e) => renderDocs(e.target.value));
+
+        renderFilters();
+        renderDocs('');
+    </script>
+</body>
+</html>
