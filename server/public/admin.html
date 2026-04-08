@@ -727,7 +727,7 @@
                 toast(`🖥️ Nowy uczeń: ${id}`, 'success');
             }
             // Preserve existing lastScore if not in the new agent-report
-            if (!data.lastScore && students[id].data.lastScore) {
+            if (!data.lastScore && students[id].data?.lastScore) {
                 data.lastScore = students[id].data.lastScore;
             }
             students[id].data = data;

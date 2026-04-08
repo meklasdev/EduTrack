@@ -62,6 +62,27 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(fileUpload());
 
+// Simple in-memory rate limiter for authenticated mutation endpoints
+const rateLimitMap = new Map();
+function rateLimit(maxRequests, windowMs) {
+    return (req, res, next) => {
+        const key = req.headers['authorization'] || req.ip;
+        const now = Date.now();
+        const entry = rateLimitMap.get(key) || { count: 0, resetAt: now + windowMs };
+        if (now > entry.resetAt) {
+            entry.count = 0;
+            entry.resetAt = now + windowMs;
+        }
+        entry.count++;
+        rateLimitMap.set(key, entry);
+        if (entry.count > maxRequests) {
+            return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+        }
+        next();
+    };
+}
+const teacherActionLimiter = rateLimit(60, 60 * 1000); // 60 requests per minute per token
+
 // Session setup with Redis
 app.use(session({
     store: new RedisStore({ client: redisClient }),
@@ -250,7 +271,7 @@ async function luckysheetToExcel(jsonStr) {
     return workbook;
 }
 
-app.post('/api/students/:hostname/reset-alerts', authMiddleware, async (req, res) => {
+app.post('/api/students/:hostname/reset-alerts', authMiddleware, teacherActionLimiter, async (req, res) => {
     try {
         const student = await prisma.student.update({
             where: { hostname: req.params.hostname },
@@ -269,7 +290,7 @@ app.post('/api/students/:hostname/reset-alerts', authMiddleware, async (req, res
     }
 });
 
-app.post('/api/students/:hostname/assign-department', authMiddleware, async (req, res) => {
+app.post('/api/students/:hostname/assign-department', authMiddleware, teacherActionLimiter, async (req, res) => {
     try {
         const { departmentId } = req.user;
         const student = await prisma.student.update({
