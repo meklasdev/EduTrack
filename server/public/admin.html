@@ -767,7 +767,7 @@
                             <tr style="border-bottom:1px solid var(--teams-border);">
                                 <td style="padding:10px;">${medals[i] || (i + 1)}</td>
                                 <td style="padding:10px;"><b>${escapeHtml(s.hostname)}</b></td>
-                                <td style="padding:10px;color:var(--teams-purple);font-weight:700;">${Number(s.points).toFixed(1)}</td>
+                                <td style="padding:10px;color:var(--teams-purple);font-weight:700;">${Number(s.points || 0).toFixed(1)}</td>
                                 <td style="padding:10px;">${escapeHtml(s.rawScore)}</td>
                                 <td style="padding:10px;color:${s.alerts > 0 ? 'var(--danger)' : 'inherit'}">${s.alerts}</td>
                             </tr>

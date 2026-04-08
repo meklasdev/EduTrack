@@ -268,11 +268,16 @@ app.post('/api/detect-plagiarism', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/check-excel', async (req, res) => {
-    const hostname = (req.body.hostname || "unknown").replace(/[^a-zA-Z0-9_-]/g, '_');
-    // Use per-student temp file to avoid concurrent submission conflicts
-    const studentPath = path.join(__dirname, `test-data/submission_${hostname}.xlsx`);
-    const plagPath    = path.join(__dirname, `test-data/plag_${hostname}.xlsx`);
-    const templatePath = path.join(__dirname, 'test-data/template.xlsx');
+    const rawHostname = req.body.hostname || `anon_${Date.now()}`;
+    const hostname = rawHostname.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const testDataDir = path.resolve(__dirname, 'test-data');
+    // Resolve full paths and verify they stay within test-data/ to prevent path traversal
+    const studentPath  = path.resolve(testDataDir, `submission_${hostname}.xlsx`);
+    const plagPath     = path.resolve(testDataDir, `plag_${hostname}.xlsx`);
+    const templatePath = path.resolve(testDataDir, 'template.xlsx');
+    if (!studentPath.startsWith(testDataDir) || !plagPath.startsWith(testDataDir)) {
+        return res.status(400).send({ error: 'Invalid hostname.' });
+    }
     try {
         if (req.files && req.files.studentFile) {
             await req.files.studentFile.mv(studentPath);
@@ -291,9 +296,9 @@ app.post('/api/check-excel', async (req, res) => {
         await fs.copy(studentPath, plagPath);
 
         await prisma.student.update({
-            where: { hostname: req.body.hostname || "unknown" },
+            where: { hostname: rawHostname },
             data: { lastScore: `${report.totalScore}/${report.maxScore}` }
-        }).catch(() => console.log(`[Database] Student ${req.body.hostname} not found for score update.`));
+        }).catch(() => console.log(`[Database] Student ${rawHostname} not found for score update.`));
 
         res.send(report);
     } catch (err) { res.status(500).send({ error: err.message }); }
