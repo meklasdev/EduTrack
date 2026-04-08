@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTrack Terminal [STUDENT MODE]</title>
-    <link href="https:
-
-
-    <link rel="stylesheet" href="https:
-    <link rel="stylesheet" href="https:
-    <script src="https:
-    <script src="https:
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:ital,wght@0,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jspreadsheet.css" type="text/css">
+    <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css">
+    <script src="https://jsuites.net/v4/jsuites.js"></script>
+    <script src="https://bossanova.uk/jspreadsheet/v4/jspreadsheet.js"></script>
 
     <style>
         :root {
@@ -229,7 +228,7 @@
                 
                 <div id="results" style="margin-top: 20px; font-weight: bold; color: var(--accent-color);"></div>
 
-                <button class="btn" onclick="document.getElementById('docs-panel').style.display='flex'" style="background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:8px; margin-top:10px; width:100%; border-radius:6px; cursor:pointer;">📚 OTWÓRZ POMOC</button>
+                <button onclick="document.getElementById('docs-panel').style.display='flex'" style="background:none; border:1px solid var(--accent-color); color:var(--accent-color); padding:8px; margin-top:10px; width:100%; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.75rem; text-transform:uppercase;">📚 OTWÓRZ POMOC</button>
 
                 <div class="monitor-box">
                     <strong>Deep Monitor (Status):</strong><br>
@@ -386,7 +385,7 @@
                 const res = await fetch(`${serverUrl}/api/check-excel`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostname: await api.getHostname(), sheetJson: JSON.stringify(luckysheetData) })
+                    body: JSON.stringify({ hostname: api ? await api.getHostname() : (location.hostname || 'student-web'), sheetJson: JSON.stringify(luckysheetData) })
                 });
                 const report = await res.json();
                 results.innerHTML = `WYNIK: ${report.totalScore}/${report.maxScore}`;

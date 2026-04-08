@@ -74,6 +74,19 @@ function createMessageWindow() {
 ipcMain.on('hide-msg', () => {
     if (messageWindow) messageWindow.hide();
 });
+/** @guard Migration Step */
+// Allow clean quit via IPC (called by teacher or when exam is finished)
+ipcMain.on('force-quit', () => {
+    isQuitting = true;
+    app.quit();
+});
+
+// Handle submit-task from renderer (forwarded to server via the socket connection)
+ipcMain.on('submit-task', (event, data) => {
+    if (socket && socket.connected) {
+        socket.emit('student-submit', data);
+    }
+});
 ipcMain.handle('get-hostname', () => os.hostname());
 app.on('ready', () => {
     createMainWindow();
