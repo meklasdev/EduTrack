@@ -181,7 +181,7 @@ EduTrack/
 │
 ├── docker-compose.yml           # PostgreSQL + Redis
 ├── setup-ubuntu.sh              # Auto-installer (Ubuntu)
-├── TODO.md                      # ✅  Roadmap (100% ukończony)
+├── TODO.md                      # 🗺️  Roadmap (15/52 zaimplementowane)
 └── REQUIREMENTS_INF.md          # Wymagania egzaminacyjne CKE
 ```
 
@@ -288,20 +288,20 @@ PORT=8080
 
 ## 🗺️ Roadmap
 
-Pełna lista ukończonych milestones: **[TODO.md](./TODO.md)**
+Pełna lista z oznaczeniem co jest zaimplementowane: **[TODO.md](./TODO.md)**
 
 <div align="center">
 
-| Kategoria | Postęp |
-|-----------|--------|
-| 🏛️ Core Architecture & Backend | ✅ 12/12 |
-| 🛡️ Anti-Cheat & Security | ✅ 8/8 |
-| 🤖 AI & Documentation | ✅ 6/6 |
-| 📊 Advanced Grading Engine | ✅ 10/10 |
-| 🎨 UI/UX & Frontend | ✅ 9/9 |
-| 🌐 Ecosystem & Integration | ✅ 7/7 |
+| Kategoria | Zaimplementowane | Planowane |
+|-----------|:---:|:---:|
+| 🏛️ Core Architecture & Backend | 4 | 8 |
+| 🛡️ Anti-Cheat & Security | 3 | 5 |
+| 🤖 AI & Documentation | 0 | 6 |
+| 📊 Advanced Grading Engine | 1 | 9 |
+| 🎨 UI/UX & Frontend | 5 | 4 |
+| 🌐 Ecosystem & Integration | 2 | 5 |
 
-**Łącznie: 52/52 zadań ukończonych — 100% ✅**
+**Zaimplementowane: 15/52 — aktywnie rozwijane 🚀**
 
 </div>
 
