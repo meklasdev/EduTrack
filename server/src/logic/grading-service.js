@@ -454,9 +454,17 @@ async function analyzeCpp(studentPath, opts = {}) {
         return report;
     }
 
-    const exePath = studentPath.replace(/\.(cpp|c)$/, '');
+    // Derive executable path and validate it stays within the same directory
+    const studentDir = path.dirname(path.resolve(studentPath));
+    const baseName   = path.basename(studentPath).replace(/\.(cpp|c)$/, '');
+    const exePath    = path.join(studentDir, baseName);
+    // Validate exePath is within the expected safe directory
+    if (!exePath.startsWith(studentDir)) {
+        report.details.push({ check: 'Kompilacja', passed: false, note: 'Nieprawidłowa ścieżka pliku.' });
+        return report;
+    }
 
-    // Compile — pass path as a separate argument (not shell-interpreted)
+    // Compile — pass each argument separately (no shell interpolation)
     try {
         await execFileAsync('g++', ['-o', exePath, studentPath, '-std=c++17', '-Wall'], {
             timeout: COMPILE_TIMEOUT_MS,

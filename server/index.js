@@ -454,7 +454,7 @@ app.post('/api/check-docx', teacherActionLimiter, async (req, res) => {
 });
 
 // Teacher uploads .docx template
-app.post('/api/upload-template-docx', authMiddleware, async (req, res) => {
+app.post('/api/upload-template-docx', authMiddleware, teacherActionLimiter, async (req, res) => {
     if (!req.files?.template) return res.status(400).send('No template.');
     await req.files.template.mv(path.join(testDataDir, 'template.docx'));
     res.json({ message: 'DOCX template updated.' });
@@ -473,7 +473,7 @@ app.post('/api/check-pptx', teacherActionLimiter, async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/upload-template-pptx', authMiddleware, async (req, res) => {
+app.post('/api/upload-template-pptx', authMiddleware, teacherActionLimiter, async (req, res) => {
     if (!req.files?.template) return res.status(400).send('No template.');
     await req.files.template.mv(path.join(testDataDir, 'template.pptx'));
     res.json({ message: 'PPTX template updated.' });
@@ -492,7 +492,7 @@ app.post('/api/check-sql', teacherActionLimiter, async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/upload-template-sql', authMiddleware, async (req, res) => {
+app.post('/api/upload-template-sql', authMiddleware, teacherActionLimiter, async (req, res) => {
     if (!req.files?.template) return res.status(400).send('No template.');
     await req.files.template.mv(path.join(testDataDir, 'template.sql'));
     res.json({ message: 'SQL template updated.' });
@@ -511,7 +511,7 @@ app.post('/api/check-pkt', teacherActionLimiter, async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/upload-template-pkt', authMiddleware, async (req, res) => {
+app.post('/api/upload-template-pkt', authMiddleware, teacherActionLimiter, async (req, res) => {
     if (!req.files?.template) return res.status(400).send('No template.');
     await req.files.template.mv(path.join(testDataDir, 'template.pkt'));
     res.json({ message: 'PKT template updated.' });
