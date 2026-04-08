@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>EduTrack Agent — Ustawienia</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 400px; margin: 0 auto; padding: 24px; background: #1a1a1a; color: #fff; }
+        h2 { color: #6264a7; }
+        label { display: block; font-size: 13px; margin-bottom: 4px; color: #aaa; }
+        input { width: 100%; background: #292828; border: 1px solid #424242; border-radius: 4px; color: #fff; padding: 8px 12px; font-size: 13px; box-sizing: border-box; margin-bottom: 16px; }
+        input:focus { outline: none; border-color: #6264a7; }
+        button { background: #6264a7; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        button:hover { background: #464775; }
+        #saved-msg { color: #92c353; margin-top: 10px; font-size: 13px; display: none; }
+    </style>
+</head>
+<body>
+    <h2>⚙️ EduTrack Agent — Ustawienia</h2>
+    <label for="server-url">Adres serwera EduTrack</label>
+    <input id="server-url" type="text" placeholder="http://192.168.1.1:8080">
+
+    <label for="student-id">ID Ucznia (hostname / login)</label>
+    <input id="student-id" type="text" placeholder="np. PC-LAB-01">
+
+    <button onclick="saveSettings()">Zapisz</button>
+    <div id="saved-msg">✅ Zapisano! Odśwież rozszerzenie.</div>
+
+    <script src="options.js"></script>
+</body>
+</html>

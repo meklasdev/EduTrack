@@ -1,0 +1,44 @@
+{
+    "manifest_version": 3,
+    "name": "EduTrack Agent for Chromebook",
+    "version": "1.0.0",
+    "description": "EduTrack student monitoring agent for Chromebook / Chrome OS schools. Connects to the EduTrack server to submit exam work and receive tasks.",
+    "icons": {
+        "16":  "icons/icon16.png",
+        "48":  "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "permissions": [
+        "storage",
+        "tabs",
+        "activeTab",
+        "scripting",
+        "alarms",
+        "identity"
+    ],
+    "host_permissions": [
+        "http://localhost:8080/*",
+        "https://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "EduTrack Agent",
+        "default_icon": {
+            "16":  "icons/icon16.png",
+            "48":  "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"],
+            "run_at": "document_start"
+        }
+    ],
+    "options_page": "options.html"
+}

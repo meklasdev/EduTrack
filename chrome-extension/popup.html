@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>EduTrack Agent</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; width: 280px; padding: 16px; background: #1a1a1a; color: #fff; margin: 0; }
+        h2 { font-size: 14px; color: #6264a7; margin: 0 0 12px; }
+        .status { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #d13438; }
+        .dot.on { background: #92c353; box-shadow: 0 0 6px #92c353; }
+        .info { font-size: 11px; color: #888; margin-bottom: 10px; }
+        .task-box { background: #292828; border: 1px solid #424242; border-radius: 6px; padding: 10px; margin-bottom: 12px; }
+        .task-title { font-size: 13px; font-weight: 600; }
+        .task-desc { font-size: 11px; color: #aaa; margin-top: 4px; }
+        a { color: #6264a7; font-size: 12px; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h2>EduTrack Agent 🎓</h2>
+    <div class="status">
+        <div class="dot" id="conn-dot"></div>
+        <span id="conn-label">Łączenie...</span>
+    </div>
+    <div class="info" id="server-info">Serwer: —</div>
+    <div id="task-box" class="task-box" style="display:none;">
+        <div class="task-title" id="task-title">—</div>
+        <div class="task-desc" id="task-desc"></div>
+    </div>
+    <div id="no-task" class="info">Brak aktywnego zadania.</div>
+    <a href="options.html" target="_blank">⚙️ Ustawienia</a>
+    <script src="popup.js"></script>
+</body>
+</html>

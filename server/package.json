@@ -10,8 +10,10 @@
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1026.0",
     "@prisma/client": "^6.19.2",
     "@socket.io/redis-adapter": "^8.3.0",
+    "adm-zip": "^0.5.17",
     "bcrypt": "^6.0.0",
     "bonjour-service": "^1.1.0",
     "connect-redis": "^9.0.0",
@@ -23,10 +25,13 @@
     "express-session": "^1.19.0",
     "fs-extra": "^11.2.0",
     "jsonwebtoken": "^9.0.3",
+    "mammoth": "^1.12.0",
+    "node-schedule": "^2.1.1",
     "pdfkit": "^0.15.0",
     "prisma": "^6.19.2",
     "redis": "^5.11.0",
     "socket.io": "^4.7.2",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "winston": "^3.19.0"
   }
 }

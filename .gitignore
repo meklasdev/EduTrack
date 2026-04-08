@@ -7,3 +7,6 @@ build/
 .idea/
 .vscode/
 package-lock.json
+server/logs/
+server/backups/
+server/tmp-grading/
