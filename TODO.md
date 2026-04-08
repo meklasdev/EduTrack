@@ -12,7 +12,7 @@ This document tracks the real development status of EduTrack. Items are marked `
 - [ ] Add horizontal scaling support for Ubuntu Server clusters.
 - [x] Create a "Headless" mode for the server for CLI-only management (`--headless` flag).
 - [ ] Implement advanced logging with ELK Stack (Elasticsearch, Logstash, Kibana).
-- [ ] Implement "Offline First" capability for local cache during network drops.
+- [x] Implement "Offline First" capability for local cache during network drops.
 - [x] Optimize Socket.io packet size for low-bandwidth school networks (`compression: true`).
 - [x] Rate limiting, security hardening (in-memory rate limiter on mutation endpoints).
 
@@ -55,7 +55,7 @@ This document tracks the real development status of EduTrack. Items are marked `
 - [x] Keyboard shortcuts for teacher batch actions (Ctrl+Enter/L/B/R/1/2/3, Esc).
 - [ ] Fully accessible UI (WCAG 2.1 compliance).
 - [x] Animations for smoother transitions (toast notifications, card animations).
-- [ ] Multi-window support for the documentation assistant.
+- [x] Multi-window support for the documentation assistant.
 
 ## 🌐 6. Ecosystem & Integration
 - [x] Docker Compose setup for one-click deployment.
