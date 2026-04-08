@@ -27,6 +27,25 @@
             --warning: #d29922;
             --card: #13161f;
         }
+        body.light-mode {
+            --bg: #f5f7fa;
+            --sidebar: #eef0f4;
+            --border: #d0d4dc;
+            --text: #1a1a2e;
+            --muted: #6b7280;
+            --card: #ffffff;
+        }
+        body.light-mode .content { background: #fff; }
+        body.light-mode #content-overlay { background: rgba(255,255,255,0.97); }
+        body.light-mode #content-overlay h2 { color: #1a1a2e; }
+        body.light-mode .toast { background: #ffffff; color: #1a1a2e; }
+
+        .theme-btn {
+            cursor: pointer; background: none; border: 1px solid rgba(98,100,167,0.3);
+            color: var(--muted); border-radius: 6px; padding: 3px 8px; font-size: 0.75rem;
+            font-family: inherit; transition: 0.2s;
+        }
+        .theme-btn:hover { border-color: var(--purple-light); color: var(--text); }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             background: var(--bg); color: var(--text);
@@ -237,6 +256,7 @@
                 <span class="material-icons">timer</span>
                 <span id="timer">00:00</span>
             </div>
+            <button class="theme-btn" onclick="toggleTheme()" title="Przełącz motyw">🌙</button>
             <div class="status-badge" id="status-badge">
                 <div class="status-dot"></div>
                 <span id="status-text">Offline</span>
@@ -290,15 +310,45 @@
 
     <div id="toast-container"></div>
 
+    <!-- Student identity modal -->
+    <div id="identity-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="background:#13161f;border:1px solid #1e2130;border-radius:14px;padding:36px 32px;width:360px;text-align:center;font-family:'Outfit',sans-serif;">
+            <div style="font-size:2rem;margin-bottom:8px;">🎓</div>
+            <h2 style="color:#e8e8f0;margin:0 0 6px;font-size:1.2rem;">Identyfikacja ucznia</h2>
+            <p style="color:#6b7280;font-size:0.83rem;margin:0 0 20px;">Wpisz swoje imię i nazwisko lub login szkolny. Będą one widoczne dla nauczyciela.</p>
+            <input id="identity-input" type="text" placeholder="np. jan.kowalski lub Jan K."
+                style="width:100%;padding:11px 14px;background:rgba(0,0,0,0.4);border:1px solid #1e2130;border-bottom:2px solid rgba(98,100,167,0.5);color:#e8e8f0;border-radius:6px;font-family:'Outfit',sans-serif;font-size:0.95rem;outline:none;box-sizing:border-box;">
+            <button onclick="confirmIdentity()"
+                style="width:100%;margin-top:14px;padding:12px;background:linear-gradient(135deg,#6264a7,#8b8dc7);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;font-family:'Outfit',sans-serif;">
+                Potwierdź i wejdź na egzamin
+            </button>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const hostname = location.hostname || 'student-web';
         let jexcelInstance;
         let examStartTime = null;
         let timerInterval = null;
 
-        document.getElementById('hostname-display').innerText = hostname;
+        // ── Student identity ──
+        let hostname = localStorage.getItem('edutrack_student_id') || '';
+        function confirmIdentity() {
+            const val = document.getElementById('identity-input').value.trim();
+            if (!val) { document.getElementById('identity-input').style.borderBottomColor = 'var(--danger)'; return; }
+            hostname = val;
+            localStorage.setItem('edutrack_student_id', hostname);
+            document.getElementById('identity-modal').style.display = 'none';
+            document.getElementById('hostname-display').innerText = hostname;
+        }
+        document.getElementById('identity-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') confirmIdentity();
+        });
+        if (hostname) {
+            document.getElementById('identity-modal').style.display = 'none';
+            document.getElementById('hostname-display').innerText = hostname;
+        }
 
         // ── Toast ──
         function toast(msg, type = 'info') {
@@ -373,6 +423,24 @@
             toast(`📋 Zadanie uruchomione: ${t.title}`, 'success');
         });
 
+        // ── Teacher messages (lock / black screen) ──
+        socket.on('teacher-message', (data) => {
+            if (data.targetId && data.targetId !== hostname) return;
+            if (data.type === 'lock' || data.type === 'black-screen') {
+                const ov = document.getElementById('content-overlay');
+                ov.classList.remove('hidden');
+                ov.querySelector('h2').innerText = '🔒 Terminal zablokowany';
+                ov.querySelector('p').innerText = data.msg || 'Nauczyciel zablokował Twój terminal.';
+                ov.style.background = data.type === 'black-screen' ? '#000' : 'rgba(0,0,0,0.95)';
+                ov.querySelector('h2').style.color = '#f85149';
+                ov.querySelector('.overlay-ring').style.display = 'none';
+                document.getElementById('check-btn').disabled = true;
+                toast('⛔ ' + (data.msg || 'Terminal zablokowany przez nauczyciela.'), 'error');
+            } else {
+                toast('📢 ' + (data.msg || ''), 'info');
+            }
+        });
+
         // ── Submit ──
         document.getElementById('check-btn').onclick = async () => {
             if (!jexcelInstance) return;
@@ -424,18 +492,41 @@
         const DOCS = [
             { c:'Excel', t:'SUMA(zakres)', d:'Dodaje liczby w zakresie komórek.', e:'=SUMA(A1:A10)' },
             { c:'Excel', t:'ŚREDNIA(zakres)', d:'Zwraca średnią arytmetyczną.', e:'=ŚREDNIA(B1:B5)' },
-            { c:'Excel', t:'JEŻELI(test;prawda;fałsz)', d:'Sprawdza warunek.', e:'=JEŻELI(C1>10;"OK";"BŁĄD")' },
-            { c:'Excel', t:'WYSZUKAJ.PIONOWO(val;tab;kol;0)', d:'Szuka wartości w tabeli.', e:'=WYSZUKAJ.PIONOWO(D1;A1:B10;2;0)' },
-            { c:'Excel', t:'LICZ.JEŻELI(zakres;kryterium)', d:'Zlicza komórki spełniające warunek.', e:'=LICZ.JEŻELI(A1:A20;">50")' },
-            { c:'Excel', t:'MAX(zakres) / MIN(zakres)', d:'Zwraca maksimum lub minimum.', e:'=MAX(A1:A10)' },
-            { c:'Excel', t:'ZAOKR(liczba;cyfry)', d:'Zaokrągla do podanej liczby cyfr.', e:'=ZAOKR(A1;2)' },
-            { c:'INF.02', t:'Adresacja IPv4', d:'Maska /24 = 255.255.255.0 (256 hostów). Brama: zazwyczaj .1 lub .254.', e:'192.168.1.0/24' },
-            { c:'INF.02', t:'ping / ipconfig / tracert', d:'Diagnostyka sieci.', e:'ping 8.8.8.8' },
-            { c:'INF.03', t:'HTML: Tabela', d:'Struktura tabeli HTML.', e:'<table><tr><td>Dane</td></tr></table>' },
-            { c:'INF.03', t:'SQL: SELECT', d:'Pobieranie danych z bazy.', e:'SELECT * FROM uczniowie WHERE klasa="1A";' },
-            { c:'INF.03', t:'SQL: INSERT', d:'Wstawianie danych do tabeli.', e:'INSERT INTO uczniowie (imie) VALUES ("Jan");' },
-            { c:'C++', t:'cout / cin', d:'Wyjście i wejście standardowe.', e:'std::cout << "Hello"; std::cin >> x;' },
-            { c:'C++', t:'for / while', d:'Pętle w C++.', e:'for(int i=0;i<10;i++) { ... }' },
+            { c:'Excel', t:'JEŻELI(test;prawda;fałsz)', d:'Sprawdza warunek i zwraca jedną z dwóch wartości.', e:'=JEŻELI(C1>10;"OK";"BŁĄD")' },
+            { c:'Excel', t:'WYSZUKAJ.PIONOWO(val;tab;kol;0)', d:'Szuka wartości w pierwszej kolumnie tabeli i zwraca wartość z innej kolumny.', e:'=WYSZUKAJ.PIONOWO(D1;A1:B10;2;0)' },
+            { c:'Excel', t:'LICZ.JEŻELI(zakres;kryterium)', d:'Zlicza komórki w zakresie spełniające podane kryterium.', e:'=LICZ.JEŻELI(A1:A20;">50")' },
+            { c:'Excel', t:'MAX(zakres) / MIN(zakres)', d:'Zwraca maksimum lub minimum z podanego zakresu.', e:'=MAX(A1:A10)' },
+            { c:'Excel', t:'ZAOKR(liczba;cyfry)', d:'Zaokrągla liczbę do podanej liczby cyfr dziesiętnych.', e:'=ZAOKR(A1;2)' },
+            { c:'Excel', t:'ILE.LICZB(zakres)', d:'Zlicza komórki zawierające liczby.', e:'=ILE.LICZB(A1:A20)' },
+            { c:'Excel', t:'ZŁĄCZ.TEKSTY(t1;t2;...)', d:'Łączy kilka ciągów tekstowych w jeden.', e:'=ZŁĄCZ.TEKSTY(A1;" ";B1)' },
+            { c:'Excel', t:'SUMA.JEŻELI(zakres;kryterium;suma)', d:'Sumuje komórki spełniające podany warunek.', e:'=SUMA.JEŻELI(A1:A10;">0";B1:B10)' },
+            { c:'Excel', t:'TERAZ() / DZIŚ()', d:'Zwraca bieżącą datę i godzinę / tylko datę.', e:'=DZIŚ()' },
+            { c:'Excel', t:'LEWY(tekst;n) / PRAWY(tekst;n)', d:'Zwraca n znaków z lewej lub prawej strony tekstu.', e:'=LEWY(A1;3)' },
+            { c:'Excel', t:'DŁ(tekst)', d:'Zwraca liczbę znaków w ciągu tekstowym.', e:'=DŁ(A1)' },
+            { c:'Excel', t:'INDEKS(tab;wiersz;kol)', d:'Zwraca wartość z tabeli według podanego numeru wiersza i kolumny.', e:'=INDEKS(A1:C10;3;2)' },
+            { c:'Excel', t:'PODAJ.POZYCJĘ(szukana;zakres;0)', d:'Zwraca pozycję elementu w zakresie.', e:'=PODAJ.POZYCJĘ("Excel";A1:A5;0)' },
+            { c:'INF.02', t:'Adresacja IPv4', d:'Maska /24 = 255.255.255.0 (256 hostów). Brama domyślna: zazwyczaj .1 lub .254.', e:'192.168.1.0/24' },
+            { c:'INF.02', t:'ping / ipconfig / tracert', d:'Narzędzia diagnostyki sieci TCP/IP.', e:'ping 8.8.8.8' },
+            { c:'INF.02', t:'Klasy adresów IP', d:'A: 1.0.0.0-126.x.x.x, B: 128.0.0.0-191.x.x.x, C: 192.0.0.0-223.x.x.x', e:'192.168.0.1 — klasa C' },
+            { c:'INF.02', t:'Model OSI (7 warstw)', d:'Fizyczna, Łącza danych, Sieciowa, Transportowa, Sesji, Prezentacji, Aplikacji.', e:'TCP = warstwa 4 (Transportowa)' },
+            { c:'INF.02', t:'Protokoły TCP/IP', d:'HTTP (80), HTTPS (443), FTP (21), SSH (22), DNS (53), DHCP (67/68).', e:'telnet 192.168.1.1 80' },
+            { c:'INF.03', t:'HTML: Tabela', d:'Podstawowa struktura tabeli HTML z nagłówkami i wierszami.', e:'<table><tr><th>Kol</th></tr><tr><td>Dane</td></tr></table>' },
+            { c:'INF.03', t:'HTML: Formularz', d:'Formularz HTML z polem tekstowym i przyciskiem.', e:'<form method="post"><input type="text" name="n"><button>Wyślij</button></form>' },
+            { c:'INF.03', t:'CSS: Selektory', d:'Selektor klasy (.klasa), id (#id), element (p, div).', e:'p.aktywny { color: red; }' },
+            { c:'INF.03', t:'SQL: SELECT', d:'Pobieranie danych z tabeli bazy danych.', e:'SELECT * FROM uczniowie WHERE klasa="1A";' },
+            { c:'INF.03', t:'SQL: INSERT', d:'Wstawianie nowego wiersza do tabeli.', e:'INSERT INTO uczniowie (imie, klasa) VALUES ("Jan","1A");' },
+            { c:'INF.03', t:'SQL: UPDATE', d:'Aktualizacja istniejących danych w tabeli.', e:'UPDATE uczniowie SET klasa="2A" WHERE id=1;' },
+            { c:'INF.03', t:'SQL: DELETE', d:'Usuwanie wierszy z tabeli.', e:'DELETE FROM uczniowie WHERE id=1;' },
+            { c:'INF.03', t:'SQL: CREATE TABLE', d:'Tworzenie nowej tabeli z kolumnami i typami danych.', e:'CREATE TABLE uczniowie (id INT PRIMARY KEY, imie VARCHAR(50));' },
+            { c:'INF.04', t:'PHP: echo / print', d:'Wyświetlanie tekstu w PHP.', e:'<?php echo "Witaj " . $imie; ?>' },
+            { c:'INF.04', t:'PHP: $_GET / $_POST', d:'Pobieranie danych z formularza lub URL.', e:'$n = $_POST["nazwa"];' },
+            { c:'INF.04', t:'PHP: mysqli połączenie', d:'Połączenie z bazą danych MySQL/MariaDB.', e:'$conn = mysqli_connect("localhost","root","","baza");' },
+            { c:'C++', t:'cout / cin', d:'Wyjście standardowe (cout) i wejście standardowe (cin).', e:'std::cout << "Hello"; std::cin >> x;' },
+            { c:'C++', t:'for / while', d:'Pętle iteracyjne w C++.', e:'for(int i=0;i<10;i++) { std::cout << i; }' },
+            { c:'C++', t:'if / else', d:'Instrukcja warunkowa.', e:'if (x > 0) { ... } else { ... }' },
+            { c:'C++', t:'Tablice', d:'Deklaracja i dostęp do tablicy jednowymiarowej.', e:'int arr[5] = {1,2,3,4,5}; cout << arr[0];' },
+            { c:'C++', t:'Funkcje', d:'Deklaracja i wywołanie funkcji.', e:'int dodaj(int a, int b) { return a+b; }' },
+            { c:'C++', t:'string', d:'Typ string i podstawowe operacje.', e:'std::string s = "Hello"; cout << s.length();' },
         ];
         function searchDocs(q) {
             const low = q.toLowerCase();
@@ -449,6 +540,18 @@
                 </div>`).join('') || '<p style="color:var(--muted);text-align:center;padding:20px;">Brak wyników</p>';
         }
         searchDocs('');
+
+        // ── Theme toggle ──
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            localStorage.setItem('edutrack_student_theme', isLight ? 'light' : 'dark');
+            document.querySelector('.theme-btn').textContent = isLight ? '☀️' : '🌙';
+        }
+        if (localStorage.getItem('edutrack_student_theme') === 'light') {
+            document.body.classList.add('light-mode');
+            document.querySelector('.theme-btn').textContent = '☀️';
+        }
 
         // Initial overlay: hide after 2s if still no task
         setTimeout(() => {

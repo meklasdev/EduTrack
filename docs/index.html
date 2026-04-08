@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack Pro — Profesjonalny System Egzaminacyjny</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple:       #6264a7;
+            --purple-light: #8b8dc7;
+            --purple-dim:   rgba(98,100,167,0.15);
+            --bg:           #0b0b18;
+            --surface:      rgba(16,16,34,0.80);
+            --border:       rgba(98,100,167,0.22);
+            --text:         #e8e8f0;
+            --muted:        #7b7b9d;
+            --success:      #4ec994;
+            --danger:       #e05a6a;
+            --warning:      #f5c542;
+            --gold:         #ffd700;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Background ── */
+        .bg-mesh {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(ellipse 70% 55% at 15% -5%,  rgba(98,100,167,0.18) 0%, transparent 65%),
+                radial-gradient(ellipse 60% 45% at 85% 110%, rgba(98,100,167,0.12) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 40% at 50% 50%,  rgba(98,100,167,0.04) 0%, transparent 70%);
+        }
+        .bg-grid {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(98,100,167,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(98,100,167,0.05) 1px, transparent 1px);
+            background-size: 44px 44px;
+        }
+
+        /* ── Floating Orbs ── */
+        .orb {
+            position: fixed; border-radius: 50%;
+            filter: blur(90px); z-index: 0; pointer-events: none;
+            animation: floatOrb ease-in-out infinite;
+        }
+        .orb-1 { width: 520px; height: 520px; background: rgba(98,100,167,0.10); top: -160px; left: -160px; animation-duration: 9s; }
+        .orb-2 { width: 380px; height: 380px; background: rgba(139,141,199,0.07); bottom: -100px; right: -100px; animation-duration: 12s; animation-delay: -5s; }
+        .orb-3 { width: 260px; height: 260px; background: rgba(78,201,148,0.05); top: 40%; left: 60%; animation-duration: 15s; animation-delay: -8s; }
+        @keyframes floatOrb {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%       { transform: translate(40px, 25px) scale(1.04); }
+            66%       { transform: translate(-20px, 40px) scale(0.97); }
+        }
+
+        /* ── Shared ── */
+        .container { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+        .section { padding: 80px 0; }
+
+        /* ── NAV ── */
+        nav {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(11,11,24,0.70);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner {
+            max-width: 1100px; margin: 0 auto; padding: 0 28px;
+            height: 56px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .nav-logo {
+            font-size: 1.2rem; font-weight: 800; letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none; color: var(--text);
+        }
+        .nav-logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 900; color: #fff;
+            box-shadow: 0 2px 10px rgba(98,100,167,0.4);
+        }
+        .nav-logo span { color: var(--purple-light); }
+        .nav-links { display: flex; gap: 6px; }
+        .nav-link {
+            padding: 6px 14px; border-radius: 6px;
+            font-size: 0.85rem; font-weight: 600; color: var(--muted);
+            text-decoration: none; transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .nav-link:hover { color: var(--text); background: var(--purple-dim); border-color: var(--border); }
+        .nav-link.cta {
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: #fff; border-color: transparent;
+            box-shadow: 0 2px 12px rgba(98,100,167,0.35);
+        }
+        .nav-link.cta:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(98,100,167,0.5); }
+
+        /* ── HERO ── */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 20px;
+            background: rgba(98,100,167,0.12); border: 1px solid rgba(98,100,167,0.25);
+            font-size: 0.78rem; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--purple-light);
+            margin-bottom: 28px;
+            animation: fadeUp 0.6s ease-out both;
+        }
+        .hero-badge .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: blink 2s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+        .hero-title {
+            font-size: clamp(2.6rem, 6vw, 5rem);
+            font-weight: 900; line-height: 1.08;
+            letter-spacing: -2px;
+            margin-bottom: 24px;
+            animation: fadeUp 0.6s 0.1s ease-out both;
+        }
+        .hero-title .accent { color: var(--purple-light); }
+        .hero-title .glow {
+            background: linear-gradient(135deg, var(--purple-light), #c4c5e8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+            max-width: 620px; margin: 0 auto 40px;
+            font-size: 1.15rem; color: var(--muted); line-height: 1.7;
+            animation: fadeUp 0.6s 0.2s ease-out both;
+        }
+
+        .hero-actions {
+            display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+            animation: fadeUp 0.6s 0.3s ease-out both;
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 28px; border-radius: 10px;
+            font-family: inherit; font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; text-decoration: none; transition: all 0.22s;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: #fff; box-shadow: 0 4px 20px rgba(98,100,167,0.35);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(98,100,167,0.5); }
+        .btn-outline {
+            background: transparent; color: var(--text);
+            border-color: var(--border); backdrop-filter: blur(8px);
+        }
+        .btn-outline:hover { background: var(--purple-dim); border-color: rgba(98,100,167,0.4); transform: translateY(-2px); }
+
+        /* hero stats */
+        .hero-stats {
+            display: flex; gap: 48px; justify-content: center;
+            margin-top: 72px; padding-top: 48px;
+            border-top: 1px solid var(--border);
+            animation: fadeUp 0.6s 0.4s ease-out both;
+            flex-wrap: wrap;
+        }
+        .stat { text-align: center; }
+        .stat-num { font-size: 2.4rem; font-weight: 900; color: var(--purple-light); letter-spacing: -1px; }
+        .stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+        /* ── FEATURES ── */
+        .section-label {
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--purple-light);
+            margin-bottom: 14px;
+        }
+        .section-title {
+            font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+            font-weight: 800; letter-spacing: -1px; line-height: 1.15;
+            margin-bottom: 56px;
+        }
+        .section-title span { color: var(--purple-light); }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px; padding: 28px;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(98,100,167,0.07), transparent 60%);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-4px); border-color: rgba(98,100,167,0.4); box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .feature-card:hover::before { opacity: 1; }
+
+        .feature-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; margin-bottom: 18px;
+            box-shadow: 0 4px 16px rgba(98,100,167,0.3);
+        }
+        .feature-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+        .feature-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+
+        /* ── TECH STACK ── */
+        .stack-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px;
+        }
+        .stack-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px 16px; text-align: center;
+            backdrop-filter: blur(16px); transition: all 0.25s;
+        }
+        .stack-card:hover { transform: translateY(-3px); border-color: rgba(98,100,167,0.4); box-shadow: 0 12px 36px rgba(0,0,0,0.25); }
+        .stack-emoji { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .stack-name { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+        .stack-role { font-size: 0.72rem; color: var(--muted); }
+
+        /* ── ANTI-CHEAT DEMO ── */
+        .demo-block {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 32px;
+            backdrop-filter: blur(16px);
+            display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap;
+        }
+        .demo-left { flex: 1; min-width: 260px; }
+        .demo-right { flex: 1; min-width: 260px; }
+        .terminal {
+            background: #0a0a14; border: 1px solid rgba(98,100,167,0.2);
+            border-radius: 10px; padding: 20px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+        }
+        .terminal-bar {
+            display: flex; gap: 6px; margin-bottom: 16px;
+        }
+        .t-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .t-dot.r { background: #ff5f57; }
+        .t-dot.y { background: #ffbd2e; }
+        .t-dot.g { background: #28c840; }
+        .t-line { margin-bottom: 6px; }
+        .t-prompt { color: #6264a7; }
+        .t-ok   { color: #4ec994; }
+        .t-warn { color: #f5c542; }
+        .t-err  { color: #e05a6a; }
+        .t-muted { color: #7b7b9d; }
+
+        .alert-list { list-style: none; }
+        .alert-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; border-radius: 8px; margin-bottom: 8px;
+            background: rgba(0,0,0,0.2); border: 1px solid transparent;
+            font-size: 0.88rem; transition: all 0.2s;
+        }
+        .alert-item.blocked { border-color: rgba(224,90,106,0.25); background: rgba(224,90,106,0.07); }
+        .alert-item.allowed { border-color: rgba(78,201,148,0.2); background: rgba(78,201,148,0.06); }
+        .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .alert-dot.red { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+        .alert-dot.green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+
+        /* ── API TABLE ── */
+        .api-table { width: 100%; border-collapse: collapse; }
+        .api-table th, .api-table td {
+            padding: 13px 18px; text-align: left; font-size: 0.88rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .api-table th {
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--muted);
+            background: rgba(0,0,0,0.2);
+        }
+        .api-table tr:last-child td { border-bottom: none; }
+        .api-table tr:hover td { background: rgba(98,100,167,0.06); }
+        .method {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.73rem; font-weight: 700;
+        }
+        .method.get  { background: rgba(78,201,148,0.12); color: var(--success); }
+        .method.post { background: rgba(98,100,167,0.15); color: var(--purple-light); }
+        .endpoint-code { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text); }
+        .auth-badge {
+            display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.7rem; font-weight: 700;
+            background: rgba(98,100,167,0.15); color: var(--purple-light); margin-left: 6px;
+        }
+
+        /* ── FLOW STEPS ── */
+        .flow {
+            display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
+        }
+        .flow-step {
+            flex: 1; min-width: 160px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 24px 20px; text-align: center;
+            position: relative; transition: all 0.25s; margin: 6px;
+        }
+        .flow-step:hover { border-color: rgba(98,100,167,0.45); transform: translateY(-3px); }
+        .flow-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            font-size: 0.9rem; font-weight: 800; color: #fff;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 14px rgba(98,100,167,0.35);
+        }
+        .flow-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+        .flow-desc  { font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
+
+        /* ── INSTALL BLOCK ── */
+        .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 640px) { .install-grid { grid-template-columns: 1fr; } }
+        .install-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden; backdrop-filter: blur(16px);
+        }
+        .install-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.88rem; font-weight: 700;
+        }
+        .install-body { padding: 20px; }
+        .code-block {
+            background: #070710; border-radius: 8px;
+            padding: 18px; overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.8;
+            color: #c9d1d9;
+        }
+        .code-block .c-comment { color: #7b7b9d; }
+        .code-block .c-cmd     { color: var(--purple-light); }
+        .code-block .c-val     { color: var(--success); }
+
+        /* ── FOOTER ── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 48px 0;
+            text-align: center;
+            color: var(--muted); font-size: 0.85rem;
+        }
+        footer .footer-logo { font-size: 1.4rem; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 12px; }
+        footer .footer-logo span { color: var(--purple-light); }
+        footer .footer-desc { max-width: 480px; margin: 0 auto 24px; line-height: 1.6; }
+        .footer-links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+        .footer-links a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--purple-light); }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .reveal {
+            opacity: 0; transform: translateY(32px);
+            transition: opacity 0.65s ease, transform 0.65s ease;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* Typing cursor */
+        .cursor {
+            display: inline-block; width: 2px; height: 1em;
+            background: var(--purple-light); margin-left: 2px;
+            vertical-align: middle; animation: cursorBlink 1s step-end infinite;
+        }
+        @keyframes cursorBlink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+        /* Progress bars */
+        .progress-wrap { margin-bottom: 16px; }
+        .progress-label {
+            display: flex; justify-content: space-between;
+            font-size: 0.82rem; margin-bottom: 6px; color: var(--text);
+        }
+        .progress-label span { color: var(--muted); }
+        .progress-bar {
+            height: 6px; background: rgba(255,255,255,0.06);
+            border-radius: 3px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, var(--purple), var(--purple-light));
+            width: 0; transition: width 1.2s ease;
+        }
+
+        /* Pulse ring */
+        .pulse-ring-wrap { display: inline-flex; position: relative; }
+        .pulse-ring {
+            position: absolute; inset: -6px; border-radius: 50%;
+            border: 2px solid rgba(98,100,167,0.3);
+            animation: ring 2.5s ease-out infinite;
+        }
+        @keyframes ring {
+            0%   { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.7); opacity: 0; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(98,100,167,0.3); border-radius: 3px; }
+
+        @media (max-width: 700px) {
+            .hero { padding: 80px 0 60px; }
+            .hero-stats { gap: 28px; }
+            .nav-links { display: none; }
+            .features-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background layers -->
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">
+                <div class="nav-logo-icon">ET</div>
+                Edu<span>Track</span> Pro
+            </a>
+            <div class="nav-links">
+                <a href="#features"  class="nav-link">Funkcje</a>
+                <a href="#stack"     class="nav-link">Stack</a>
+                <a href="#anticheat" class="nav-link">Anti-Cheat</a>
+                <a href="#api"       class="nav-link">API</a>
+                <a href="#install"   class="nav-link">Instalacja</a>
+                <a href="https://github.com/meklasdev/EduTrack" class="nav-link cta" target="_blank">GitHub →</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <div class="dot"></div>
+                <span>v1.2 &nbsp;·&nbsp; Production Ready &nbsp;·&nbsp; INF.02 / INF.03 / INF.04</span>
+            </div>
+            <h1 class="hero-title">
+                Inteligentny System<br>
+                <span class="glow">Egzaminów Informatycznych</span>
+            </h1>
+            <p class="hero-desc">
+                EduTrack Pro to profesjonalny ekosystem dla szkół technicznych — automatyczne
+                sprawdzanie arkuszy Excel, monitoring w czasie rzeczywistym i zaawansowana
+                ochrona antycheatowa w jednym miejscu.
+            </p>
+            <div class="hero-actions">
+                <a href="#install" class="btn btn-primary">
+                    🚀 Zacznij teraz
+                </a>
+                <a href="https://github.com/meklasdev/EduTrack" class="btn btn-outline" target="_blank">
+                    ⭐ GitHub
+                </a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-num" data-target="1000">0</div>
+                    <div class="stat-label">Uczniów jednocześnie</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num" data-target="36">0</div>
+                    <div class="stat-label">Wpisów w dokumentacji</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num" data-target="12">0</div>
+                    <div class="stat-label">Endpointów API</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num" data-target="100">0</div>
+                    <div class="stat-label">% TODO ukończono</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+        <div class="container">
+            <div class="reveal">
+                <div class="section-label">Funkcjonalności</div>
+                <h2 class="section-title">Wszystko, czego potrzebuje<br><span>nowoczesna sala egzaminacyjna</span></h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">AutoGrader Excel</div>
+                    <div class="feature-desc">Silnik ExcelLogicChecker porównuje formuły, wartości i formatowanie. Obsługa VLOOKUP, SUMA.JEŻELI, formuł zagnieżdżonych i tolerancji zaokrąglenia ±0.01.</div>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🛡️</div>
+                    <div class="feature-title">Anti-Cheat Engine</div>
+                    <div class="feature-desc">Wykrywanie AI (ChatGPT, Claude, Gemini), monitoring okien przez Windows API, auto black-screen po 10 alertach, detekcja utraty focusu.</div>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🖥️</div>
+                    <div class="feature-title">Panel Nauczyciela</div>
+                    <div class="feature-desc">Dashboard w stylu MS Teams z widokiem w czasie rzeczywistym. Miniatury ekranów, ranking, mapa klasy 3D, toast notifications, skróty klawiszowe.</div>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🎓</div>
+                    <div class="feature-title">Terminal Ucznia</div>
+                    <div class="feature-desc">Wbudowany arkusz kalkulacyjny jspreadsheet CE v4, timer egzaminacyjny, asystent dokumentacji (36 wpisów), tryb web i Electron.</div>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🔐</div>
+                    <div class="feature-title">Multi-Teacher Auth</div>
+                    <div class="feature-desc">JWT + bcrypt, izolacja danych per dział, przypisywanie uczniów do nauczyciela, Redis-based session management, rate limiting.</div>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">📄</div>
+                    <div class="feature-title">Raporty & Certyfikaty</div>
+                    <div class="feature-desc">Generowanie PDF raportów cheatowania, certyfikatów ukończenia, detekcja plagiatów (porównanie formuł 90%+ = plagiat), JSON exports.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Exam workflow -->
+    <section class="section" style="padding-top:0;">
+        <div class="container reveal">
+            <div class="section-label">Przebieg egzaminu</div>
+            <h2 class="section-title" style="margin-bottom:32px;">Prosty przepływ,<br><span>potężne możliwości</span></h2>
+            <div class="flow">
+                <div class="flow-step">
+                    <div class="flow-num">1</div>
+                    <div class="flow-title">Nauczyciel loguje się</div>
+                    <div class="flow-desc">JWT auth, wybiera dział, wgrywa szablon .xlsx do AutoGradera.</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">2</div>
+                    <div class="flow-title">Uczniowie dołączają</div>
+                    <div class="flow-desc">Electron agent lub przeglądarka. Auto-discovery przez mDNS w sieci LAN.</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">3</div>
+                    <div class="flow-title">Start zadania</div>
+                    <div class="flow-desc">Nauczyciel wysyła task push. Timer startuje, arkusz się odblokowuje.</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">4</div>
+                    <div class="flow-title">Monitoring RT</div>
+                    <div class="flow-desc">Screenshoty co 3s, analiza okien co 5s, alerty w czasie rzeczywistym.</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">5</div>
+                    <div class="flow-title">Sprawdzenie</div>
+                    <div class="flow-desc">Student wysyła plik, ExcelChecker porównuje z wzorcem, wynik w sekundy.</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">6</div>
+                    <div class="flow-title">Wyniki & Ranking</div>
+                    <div class="flow-desc">Leaderboard na żywo, certyfikaty PDF, raporty cheat evidence.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stack -->
+    <section class="section" id="stack">
+        <div class="container">
+            <div class="reveal">
+                <div class="section-label">Stack Technologiczny</div>
+                <h2 class="section-title">Sprawdzone technologie,<br><span>enterprise-grade</span></h2>
+            </div>
+            <div class="stack-grid reveal">
+                <div class="stack-card">
+                    <span class="stack-emoji">🟩</span>
+                    <div class="stack-name">Node.js</div>
+                    <div class="stack-role">Backend runtime</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">🐘</span>
+                    <div class="stack-name">PostgreSQL</div>
+                    <div class="stack-role">Baza danych</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">🔴</span>
+                    <div class="stack-name">Redis</div>
+                    <div class="stack-role">Cache / sesje</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">⚡</span>
+                    <div class="stack-name">Socket.io</div>
+                    <div class="stack-role">Real-time WS</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">📊</span>
+                    <div class="stack-name">ExcelJS</div>
+                    <div class="stack-role">Grading engine</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">🗄️</span>
+                    <div class="stack-name">Prisma ORM</div>
+                    <div class="stack-role">DB access layer</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">⚛️</span>
+                    <div class="stack-name">Electron</div>
+                    <div class="stack-role">Desktop agent</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">🐳</span>
+                    <div class="stack-name">Docker</div>
+                    <div class="stack-role">Deployment</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">🔑</span>
+                    <div class="stack-name">JWT + bcrypt</div>
+                    <div class="stack-role">Auth & security</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">📡</span>
+                    <div class="stack-name">Bonjour/mDNS</div>
+                    <div class="stack-role">Auto-discovery</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">📃</span>
+                    <div class="stack-name">PDFKit</div>
+                    <div class="stack-role">Cert & reports</div>
+                </div>
+                <div class="stack-card">
+                    <span class="stack-emoji">🕸️</span>
+                    <div class="stack-name">Express.js</div>
+                    <div class="stack-role">HTTP framework</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Anti-Cheat section -->
+    <section class="section" id="anticheat">
+        <div class="container">
+            <div class="reveal">
+                <div class="section-label">Anti-Cheat System</div>
+                <h2 class="section-title">Zero tolerancji<br><span>dla nieuczciwości</span></h2>
+            </div>
+            <div class="demo-block reveal">
+                <div class="demo-left">
+                    <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">Live monitoring — ostatnie zdarzenia</h3>
+                    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:20px;">System analizuje procesy i okna co 5 sekund.</p>
+                    <ul class="alert-list" id="alert-feed"></ul>
+                    <div style="margin-top:20px;">
+                        <div class="progress-wrap">
+                            <div class="progress-label">Bezpieczeństwo sesji <span id="safety-pct">98%</span></div>
+                            <div class="progress-bar"><div class="progress-fill" style="width:98%;background:linear-gradient(90deg,#4ec994,#2da06e);"></div></div>
+                        </div>
+                        <div class="progress-wrap">
+                            <div class="progress-label">Aktywnych studentów <span>8/8</span></div>
+                            <div class="progress-bar"><div class="progress-fill" style="width:100%;"></div></div>
+                        </div>
+                        <div class="progress-wrap">
+                            <div class="progress-label">Postęp egzaminu <span id="exam-pct">0%</span></div>
+                            <div class="progress-bar"><div class="progress-fill" id="exam-progress"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="demo-right">
+                    <div class="terminal">
+                        <div class="terminal-bar">
+                            <div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div>
+                            <span style="color:#7b7b9d;font-size:0.7rem;margin-left:8px;">EduTrack Monitor — Jan.Kowalski</span>
+                        </div>
+                        <div id="terminal-lines"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API -->
+    <section class="section" id="api">
+        <div class="container reveal">
+            <div class="section-label">REST API</div>
+            <h2 class="section-title">12 endpointów,<br><span>pełna kontrola</span></h2>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;backdrop-filter:blur(16px);">
+                <table class="api-table">
+                    <thead>
+                        <tr>
+                            <th>Metoda</th>
+                            <th>Endpoint</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="method post">POST</span></td><td><code class="endpoint-code">/api/auth/register</code></td><td>Rejestracja nauczyciela</td></tr>
+                        <tr><td><span class="method post">POST</span></td><td><code class="endpoint-code">/api/auth/login</code></td><td>Logowanie — zwraca JWT</td></tr>
+                        <tr><td><span class="method get">GET</span></td><td><code class="endpoint-code">/api/students</code> <span class="auth-badge">auth</span></td><td>Lista uczniów działu</td></tr>
+                        <tr><td><span class="method post">POST</span></td><td><code class="endpoint-code">/api/check-excel</code></td><td>Sprawdź arkusz ucznia</td></tr>
+                        <tr><td><span class="method post">POST</span></td><td><code class="endpoint-code">/api/upload-template</code> <span class="auth-badge">auth</span></td><td>Wgraj wzorzec oceniania</td></tr>
+                        <tr><td><span class="method get">GET</span></td><td><code class="endpoint-code">/api/leaderboard</code></td><td>Ranking uczniów</td></tr>
+                        <tr><td><span class="method get">GET</span></td><td><code class="endpoint-code">/api/report/:hostname</code> <span class="auth-badge">auth</span></td><td>Raport JSON ucznia</td></tr>
+                        <tr><td><span class="method get">GET</span></td><td><code class="endpoint-code">/api/report/:hostname/pdf</code> <span class="auth-badge">auth</span></td><td>Raport PDF (cheat evidence)</td></tr>
+                        <tr><td><span class="method get">GET</span></td><td><code class="endpoint-code">/api/certificate/:hostname</code> <span class="auth-badge">auth</span></td><td>Certyfikat ukończenia</td></tr>
+                        <tr><td><span class="method post">POST</span></td><td><code class="endpoint-code">/api/detect-plagiarism</code> <span class="auth-badge">auth</span></td><td>Detekcja plagiatów</td></tr>
+                        <tr><td><span class="method post">POST</span></td><td><code class="endpoint-code">/api/students/:h/reset-alerts</code> <span class="auth-badge">auth</span></td><td>Resetuj alerty ucznia</td></tr>
+                        <tr><td><span class="method post">POST</span></td><td><code class="endpoint-code">/api/students/:h/assign-department</code> <span class="auth-badge">auth</span></td><td>Przypisz ucznia do działu</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Install -->
+    <section class="section" id="install">
+        <div class="container reveal">
+            <div class="section-label">Instalacja</div>
+            <h2 class="section-title">Uruchom w 5 minut<br><span>na Ubuntu</span></h2>
+            <div class="install-grid">
+                <div class="install-card">
+                    <div class="install-header">🖥️ Serwer (Ubuntu 20.04+)</div>
+                    <div class="install-body">
+                        <div class="code-block">
+<span class="c-comment"># 1. Klonuj i zainstaluj</span>
+<span class="c-cmd">git clone</span> &lt;repo-url&gt; &amp;&amp; <span class="c-cmd">cd</span> EduTrack
+<span class="c-cmd">chmod +x</span> setup-ubuntu.sh
+<span class="c-cmd">./setup-ubuntu.sh</span>
+
+<span class="c-comment"># 2. Uruchom bazy danych</span>
+<span class="c-cmd">docker-compose up -d</span>
+
+<span class="c-comment"># 3. Konfiguracja</span>
+<span class="c-cmd">cd</span> server &amp;&amp; <span class="c-cmd">cp</span> .env.example .env
+<span class="c-comment"># → Ustaw DATABASE_URL, JWT_SECRET</span>
+
+<span class="c-comment"># 4. Migracja i start</span>
+<span class="c-cmd">npx prisma migrate deploy</span>
+<span class="c-cmd">npm start</span>
+
+<span class="c-comment"># Panel: http://localhost:8080/login</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="install-card">
+                    <div class="install-header">🎓 Terminal ucznia (Electron)</div>
+                    <div class="install-body">
+                        <div class="code-block">
+<span class="c-comment"># 1. Wejdź do katalogu</span>
+<span class="c-cmd">cd</span> app-student
+
+<span class="c-comment"># 2. Zainstaluj zależności</span>
+<span class="c-cmd">npm install</span>
+
+<span class="c-comment"># 3. Uruchom agenta</span>
+<span class="c-cmd">npm start</span>
+
+<span class="c-comment"># ✅ Agent automatycznie wykrywa</span>
+<span class="c-comment"># serwer w sieci LAN przez mDNS.</span>
+<span class="c-comment"># Działa również jako strona web:</span>
+<span class="c-comment"># http://&lt;server-ip&gt;:8080</span>
+                        </div>
+                        <div style="margin-top:16px;padding:14px;background:rgba(78,201,148,0.08);border:1px solid rgba(78,201,148,0.2);border-radius:8px;font-size:0.82rem;">
+                            <strong style="color:var(--success);">✅ Wymagania:</strong>
+                            <div style="color:var(--muted);margin-top:6px;line-height:1.8;">
+                                Node.js 20+ &nbsp;·&nbsp; Docker &nbsp;·&nbsp; Ubuntu 20.04+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-logo">Edu<span>Track</span> Pro</div>
+            <div class="footer-desc">
+                Profesjonalny system egzaminacyjny dla szkół technicznych.<br>
+                INF.02 · INF.03 · INF.04 · CKE 2025/2026
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com/meklasdev/EduTrack" target="_blank">GitHub</a>
+                <a href="../README.md">README</a>
+                <a href="../TODO.md">Roadmap</a>
+                <a href="../REQUIREMENTS_INF.md">Wymagania</a>
+            </div>
+            <div style="margin-top:28px;font-size:0.72rem;opacity:0.5;">
+                Stworzone z ❤️ dla lepszej edukacji &nbsp;·&nbsp; © 2025 EduTrack Pro
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ── Counter animation ──
+        function animateCounter(el) {
+            const target = parseInt(el.dataset.target, 10);
+            const suffix = target === 100 ? '%' : target >= 1000 ? '+' : '';
+            const duration = 1800;
+            const start = performance.now();
+            function step(now) {
+                const p = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - p, 3);
+                el.textContent = Math.floor(eased * target) + suffix;
+                if (p < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        // ── Intersection Observer for reveals ──
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('visible');
+                    // Counters
+                    e.target.querySelectorAll('[data-target]').forEach(animateCounter);
+                    io.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.12 });
+
+        document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+        // Also observe hero stats parent
+        const statsEl = document.querySelector('.hero-stats');
+        if (statsEl) {
+            const statIo = new IntersectionObserver(entries => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) {
+                        e.target.querySelectorAll('[data-target]').forEach(animateCounter);
+                        statIo.unobserve(e.target);
+                    }
+                });
+            }, { threshold: 0.3 });
+            statIo.observe(statsEl);
+        }
+
+        // ── Animated terminal ──
+        const terminalLines = [
+            { cls: 't-prompt', text: '$ EduTrack Monitor — starting...' },
+            { cls: 't-ok',     text: '✓ Connected to server (Redis adapter)' },
+            { cls: 't-muted',  text: '→ Scanning processes... 142 found' },
+            { cls: 't-ok',     text: '✓ Session: Jan.Kowalski [dept-INF03]' },
+            { cls: 't-warn',   text: '⚠ ALERT: chrome.exe detected (window focus)' },
+            { cls: 't-err',    text: '✗ BLOCKED: chatgpt.com — AI tool detected!' },
+            { cls: 't-ok',     text: '✓ Screenshot captured (3.2s interval)' },
+            { cls: 't-muted',  text: '→ Heartbeat #47 sent to teacher panel' },
+            { cls: 't-ok',     text: '✓ Excel submission received — grading...' },
+            { cls: 't-ok',     text: '✓ Score: 8.5/10 — certificate generated' },
+        ];
+        const terminalEl = document.getElementById('terminal-lines');
+        let lineIdx = 0;
+        function addTerminalLine() {
+            if (lineIdx >= terminalLines.length) lineIdx = 0;
+            const line = terminalLines[lineIdx++];
+            const div = document.createElement('div');
+            div.className = `t-line ${line.cls}`;
+            div.textContent = line.text;
+            div.style.opacity = '0';
+            div.style.transition = 'opacity 0.3s';
+            terminalEl.appendChild(div);
+            requestAnimationFrame(() => { div.style.opacity = '1'; });
+            // Keep max 8 lines
+            while (terminalEl.children.length > 8) {
+                terminalEl.removeChild(terminalEl.firstChild);
+            }
+        }
+        addTerminalLine();
+        setInterval(addTerminalLine, 1500);
+
+        // ── Alert feed ──
+        const alertEvents = [
+            { cls: 'blocked', text: '🔴 chrome.exe — przeglądarka', label: 'ZABLOKOWANE' },
+            { cls: 'allowed', text: '🟢 excel.exe — arkusz kalkulacyjny', label: 'OK' },
+            { cls: 'blocked', text: '🔴 discord.exe — komunikator', label: 'ZABLOKOWANE' },
+            { cls: 'allowed', text: '🟢 code.exe — VS Code', label: 'OK' },
+            { cls: 'blocked', text: '🔴 chatgpt.com — narzędzie AI', label: 'ALERT' },
+            { cls: 'allowed', text: '🟢 gimp-2.10.exe — edytor grafiki', label: 'OK' },
+        ];
+        const feedEl = document.getElementById('alert-feed');
+        let alertIdx = 0;
+        function addAlertItem() {
+            const ev = alertEvents[alertIdx % alertEvents.length];
+            alertIdx++;
+            const li = document.createElement('li');
+            li.className = `alert-item ${ev.cls}`;
+            li.style.opacity = '0';
+            li.style.transition = 'opacity 0.4s';
+            li.innerHTML = `
+                <div class="alert-dot ${ev.cls === 'blocked' ? 'red' : 'green'}"></div>
+                <span style="flex:1">${ev.text}</span>
+                <span style="font-size:0.72rem;font-weight:700;color:${ev.cls === 'blocked' ? 'var(--danger)' : 'var(--success)'}">${ev.label}</span>
+            `;
+            feedEl.insertBefore(li, feedEl.firstChild);
+            requestAnimationFrame(() => { li.style.opacity = '1'; });
+            while (feedEl.children.length > 4) feedEl.removeChild(feedEl.lastChild);
+        }
+        addAlertItem();
+        setInterval(addAlertItem, 2200);
+
+        // ── Exam progress bar ──
+        let examPct = 0;
+        const examFill = document.getElementById('exam-progress');
+        const examPctEl = document.getElementById('exam-pct');
+        setInterval(() => {
+            if (examPct < 100) {
+                examPct = Math.min(100, examPct + Math.random() * 2);
+                examFill.style.width = examPct.toFixed(0) + '%';
+                examPctEl.textContent = examPct.toFixed(0) + '%';
+            }
+        }, 500);
+    </script>
+</body>
+</html>
