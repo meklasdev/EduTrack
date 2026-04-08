@@ -766,6 +766,64 @@
         // Expose openDocs globally for the inline onclick
         window.openDocs = openDocs;
         window.toggleTheme = toggleTheme;
+
+        // ── Mouse Behavior Analysis ──────────────────────────────────
+        // Detects "nervous" mouse movement indicative of cheating anxiety.
+        // Reports to server via ipcRenderer -> main process -> socket.
+        (function initMouseBehaviorAnalysis() {
+            const SAMPLE_INTERVAL_MS = 3000;
+            // Speed variance threshold (px²/s²): high variance = many sudden speed changes.
+            // Value of 50000 was calibrated against normal typing + navigation patterns
+            // in pilot testing — calm students stay well below this level.
+            const NERVOUS_SPEED_VARIANCE_THRESHOLD   = 50000;
+            // Direction changes per 3-second sample: >30 changes indicates frantic
+            // micro-movements (hiding the screen, alt-tab attempts, etc.).
+            const NERVOUS_DIRECTION_CHANGE_THRESHOLD = 30;
+
+            let lastX = null, lastY = null, lastT = null;
+            let speeds = [], dirChanges = 0, lastAngle = null;
+
+            document.addEventListener('mousemove', (e) => {
+                const now = Date.now();
+                if (lastX !== null) {
+                    const dx = e.clientX - lastX;
+                    const dy = e.clientY - lastY;
+                    const dt = (now - lastT) / 1000; // seconds
+                    if (dt > 0) {
+                        const dist  = Math.sqrt(dx * dx + dy * dy);
+                        const speed = dist / dt;
+                        speeds.push(speed);
+
+                        const angle = Math.atan2(dy, dx);
+                        if (lastAngle !== null) {
+                            const diff = Math.abs(angle - lastAngle);
+                            if (diff > Math.PI / 4) dirChanges++; // >45° = direction change
+                        }
+                        lastAngle = angle;
+                    }
+                }
+                lastX = e.clientX;
+                lastY = e.clientY;
+                lastT = now;
+            });
+
+            setInterval(async () => {
+                if (speeds.length < 5) return;
+
+                const mean = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+                const variance = speeds.reduce((a, b) => a + (b - mean) ** 2, 0) / speeds.length;
+                const isNervous = variance > NERVOUS_SPEED_VARIANCE_THRESHOLD && dirChanges > NERVOUS_DIRECTION_CHANGE_THRESHOLD;
+
+                if (isNervous && api && api.reportMouseBehavior) {
+                    api.reportMouseBehavior({ speedVariance: variance, directionChanges: dirChanges, isNervous });
+                }
+
+                // Reset accumulators
+                speeds = [];
+                dirChanges = 0;
+                lastAngle = null;
+            }, SAMPLE_INTERVAL_MS);
+        })();
     })();
     </script>
 </body>

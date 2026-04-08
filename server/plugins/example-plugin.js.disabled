@@ -1,0 +1,33 @@
+/**
+ * EduTrack Sample Plugin — Hello World
+ *
+ * Copy this file into plugins/ to enable it. It demonstrates how to:
+ *   1. Add a new REST endpoint
+ *   2. Listen to Socket.io events
+ *   3. Use the Prisma client
+ *
+ * To disable, remove or rename this file (e.g. example-plugin.js.disabled).
+ */
+
+module.exports = {
+    name: 'example-hello-plugin',
+    version: '1.0.0',
+
+    register(app, io, prisma) {
+        // Add a simple GET endpoint
+        app.get('/api/plugins/hello', (req, res) => {
+            res.json({
+                plugin: 'example-hello-plugin',
+                message: 'Hello from EduTrack Plugin System!',
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        // Example socket listener
+        io.on('connection', (socket) => {
+            socket.on('plugin-ping', (data, ack) => {
+                if (typeof ack === 'function') ack({ pong: true, plugin: 'example-hello-plugin' });
+            });
+        });
+    }
+};

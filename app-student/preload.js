@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     examEnded:     ()     => ipcRenderer.send('exam-ended'),
     openDocsWindow:()     => ipcRenderer.send('open-docs-window'),
 
+    // Mouse behavior analysis (anti-cheat)
+    reportMouseBehavior: (data) => ipcRenderer.send('mouse-behavior', data),
+
     // Info
     getHostname: () => ipcRenderer.invoke('get-hostname'),
 });

@@ -188,6 +188,12 @@ ipcMain.on('exam-ended',   () => { examActive = false; });
 
 ipcMain.on('open-docs-window', () => openDocsWindow());
 
+ipcMain.on('mouse-behavior', (event, data) => {
+    if (socket && socket.connected) {
+        socket.emit('mouse-behavior', { hostname: os.hostname(), ...data });
+    }
+});
+
 // Offline-first: renderer asks to persist task data
 ipcMain.on('cache-task', (event, data) => {
     writeCache({ lastTask: data, cachedAt: Date.now() });
@@ -290,12 +296,56 @@ function connectToServer(serverUrl) {
         examActive = false;
         writeCache({ lastTask: null });
     });
+
+    // Network Lockdown: apply/remove local firewall rules when commanded by teacher
+    socket.on('network-lockdown', (data) => {
+        if (data.action === 'apply') {
+            applyNetworkLockdown(data.serverIp, data.serverPort || 8080);
+        } else if (data.action === 'remove') {
+            removeNetworkLockdown();
+        }
+    });
 }
 
 // ---------------------------------------------------------------------------
 // Background monitoring
 // ---------------------------------------------------------------------------
 let monitoringStarted = false;
+
+// USB detection: track known drives to detect newly inserted ones
+let knownDrives = new Set();
+
+function getRemovableDrives() {
+    return new Promise((resolve) => {
+        const isWin = os.platform() === 'win32';
+        if (isWin) {
+            exec('wmic logicaldisk where drivetype=2 get name', (err, stdout) => {
+                if (err) return resolve([]);
+                const drives = stdout.split('\n').map(l => l.trim()).filter(l => /^[A-Z]:$/.test(l));
+                resolve(drives);
+            });
+        } else {
+            // Linux/macOS: check /proc/mounts or lsblk for removable devices
+            exec("lsblk -o NAME,RM,MOUNTPOINT -J 2>/dev/null || cat /proc/mounts", (err, stdout) => {
+                if (err) return resolve([]);
+                const drives = [];
+                try {
+                    const json = JSON.parse(stdout);
+                    (json.blockdevices || []).forEach(d => {
+                        if (d.rm === '1' && d.mountpoint) drives.push(d.mountpoint);
+                        (d.children || []).forEach(c => { if (c.rm === '1' && c.mountpoint) drives.push(c.mountpoint); });
+                    });
+                } catch {
+                    // Fallback: scan /media and /mnt
+                    ['/media', '/mnt'].forEach(base => {
+                        try { fs.readdirSync(base).forEach(d => drives.push(`${base}/${d}`)); } catch {}
+                    });
+                }
+                resolve(drives);
+            });
+        }
+    });
+}
 
 function startMonitoring() {
     if (monitoringStarted) return;
@@ -343,6 +393,19 @@ function startMonitoring() {
             socket.emit('agent-screenshot', { hostname: os.hostname(), img: img.toString('base64') });
         } catch (e) { console.error('[AGENT] Screenshot error:', e.message); }
     }, 3000);
+
+    // USB detection: poll every 5 seconds for new removable drives
+    setInterval(async () => {
+        if (!socket || !socket.connected) return;
+        const currentDrives = await getRemovableDrives();
+        const currentSet    = new Set(currentDrives);
+        const newDrives     = currentDrives.filter(d => !knownDrives.has(d));
+        if (newDrives.length > 0) {
+            console.warn('[AGENT] USB drive(s) detected:', newDrives);
+            socket.emit('usb-detected', { hostname: os.hostname(), drives: newDrives });
+        }
+        knownDrives = currentSet;
+    }, 5000);
 }
 
 // ---------------------------------------------------------------------------
@@ -368,4 +431,52 @@ async function runSoftwareAudit() {
 }
 
 app.on('will-quit', () => { bonjour.destroy(); });
+
+// ---------------------------------------------------------------------------
+// Network Lockdown helpers (Windows: netsh / Linux: iptables)
+// ---------------------------------------------------------------------------
+function applyNetworkLockdown(serverIp, serverPort) {
+    const platform = os.platform();
+    console.log(`[AGENT] Applying network lockdown — allowing only ${serverIp}:${serverPort}`);
+
+    if (platform === 'win32') {
+        const cmds = [
+            `netsh advfirewall firewall add rule name="EduTrack-Allow" dir=out action=allow remoteip=${serverIp} remoteport=${serverPort} protocol=TCP`,
+            `netsh advfirewall firewall add rule name="EduTrack-Allow-DNS" dir=out action=allow remoteport=53 protocol=UDP`,
+            `netsh advfirewall firewall add rule name="EduTrack-BlockAll" dir=out action=block`
+        ];
+        cmds.forEach(cmd => exec(cmd, err => { if (err) console.warn('[AGENT] Firewall cmd failed:', err.message); }));
+    } else {
+        const cmds = [
+            `iptables -F OUTPUT`,
+            `iptables -A OUTPUT -o lo -j ACCEPT`,
+            `iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT`,
+            `iptables -A OUTPUT -p udp --dport 53 -j ACCEPT`,
+            `iptables -A OUTPUT -d ${serverIp} -p tcp --dport ${serverPort} -j ACCEPT`,
+            `iptables -A OUTPUT -j DROP`
+        ];
+        cmds.forEach(cmd => exec(cmd, err => { if (err) console.warn('[AGENT] iptables failed:', err.message); }));
+    }
+
+    if (socket && socket.connected) {
+        socket.emit('lockdown-status', { hostname: os.hostname(), active: true });
+    }
+}
+
+function removeNetworkLockdown() {
+    const platform = os.platform();
+    console.log('[AGENT] Removing network lockdown.');
+
+    if (platform === 'win32') {
+        ['EduTrack-Allow', 'EduTrack-Allow-DNS', 'EduTrack-BlockAll'].forEach(name => {
+            exec(`netsh advfirewall firewall delete rule name="${name}"`, () => {});
+        });
+    } else {
+        exec('iptables -F OUTPUT', () => {});
+    }
+
+    if (socket && socket.connected) {
+        socket.emit('lockdown-status', { hostname: os.hostname(), active: false });
+    }
+}
 
