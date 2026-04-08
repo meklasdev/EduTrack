@@ -440,7 +440,15 @@ async function saveSubmission(file, hostname, ext) {
     return dest;
 }
 
-/** Helper: persist score to DB and notify teacher panel via Socket.io */
+/**
+ * Persists a student's score to the database and notifies the teacher panel
+ * via Socket.io with a real-time score update event.
+ *
+ * @param {string} rawHostname - The student's hostname (used as the DB lookup key)
+ * @param {number} totalScore - Points earned by the student
+ * @param {number} maxScore - Maximum possible points for the task
+ * @returns {Promise<void>}
+ */
 async function saveScoreAndNotify(rawHostname, totalScore, maxScore) {
     const newScore = `${totalScore}/${maxScore}`;
     const updated = await prisma.student.update({

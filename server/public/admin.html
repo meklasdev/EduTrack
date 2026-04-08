@@ -1015,6 +1015,8 @@
 
         // --- Task type helpers ---
         const TASK_TYPE_CONFIG = {
+            // 'online' uses the built-in spreadsheet editor; 'offline' uses MS Excel locally.
+            // Both grade against the same .xlsx template via the same endpoint.
             'online':        { accept: '.xlsx',        uploadUrl: '/api/upload-template',          needsTemplate: false, label: 'Wzór (.xlsx) do oceny' },
             'offline':       { accept: '.xlsx',        uploadUrl: '/api/upload-template',          needsTemplate: false, label: 'Wzór (.xlsx) do oceny' },
             'docx':          { accept: '.docx',        uploadUrl: '/api/upload-template-docx',     needsTemplate: true,  label: 'Wzór (.docx) do oceny' },

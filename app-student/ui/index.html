@@ -664,22 +664,24 @@
             document.getElementById('submit-btn').disabled = false;
 
             const cfg = getTaskMode(t.type);
-            const ext = cfg.accept.split(',')[0].replace('.', '');
-            const fname = t.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.' + ext;
-            document.getElementById('filename-tab').textContent = fname;
             document.getElementById('editor-mode-label').textContent = `Tryb: ${cfg.label}`;
 
             if (cfg.mode === 'spreadsheet') {
+                const fname = t.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.xlsx';
+                document.getElementById('filename-tab').textContent = fname;
                 document.getElementById('spreadsheet-wrap').style.display = 'block';
                 document.getElementById('upload-wrap').style.display = 'none';
             } else {
+                document.getElementById('filename-tab').textContent = t.title;
                 document.getElementById('spreadsheet-wrap').style.display = 'none';
                 const uploadWrap = document.getElementById('upload-wrap');
                 uploadWrap.style.display = 'flex';
                 document.getElementById('upload-icon').textContent = cfg.icon;
                 document.getElementById('upload-hint').textContent = cfg.hint;
                 document.getElementById('upload-desc').textContent = `Akceptowane formaty: ${cfg.accept}`;
-                document.getElementById('upload-file').accept = cfg.accept;
+                const fileInput = document.getElementById('upload-file');
+                fileInput.accept = cfg.accept;
+                fileInput.value = '';
                 document.getElementById('waiting').classList.add('hidden');
             }
 
@@ -698,6 +700,12 @@
                 window.open('docs.html', '_blank', 'width=720,height=600');
             }
         }
+
+        /* ── File selection: update filename tab with actual file name ── */
+        document.getElementById('upload-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) document.getElementById('filename-tab').textContent = file.name;
+        });
 
         /* ── Offline-first: load cached task on startup ──────────── */
         (async function loadCachedTask() {
