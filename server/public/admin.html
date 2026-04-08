@@ -141,6 +141,62 @@
         .view-container { display: none; height: 100%; width: 100%; flex-direction: row; animation: slideIn 0.3s ease-out; }
         .view-container.active { display: flex !important; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn  { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Empty state ── */
+        .empty-state {
+            width: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 12px;
+            color: var(--teams-text-secondary); padding: 60px 20px;
+            text-align: center;
+        }
+        .empty-state svg { width: 56px; height: 56px; opacity: 0.3; }
+        .empty-state h3 { font-size: 14px; font-weight: 600; }
+        .empty-state p { font-size: 12px; }
+
+        /* ── Toast notification system ── */
+        #toast-container {
+            position: fixed; bottom: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 8px; z-index: 9999;
+        }
+        .toast {
+            background: var(--teams-card-bg); border: 1px solid var(--teams-border);
+            border-left: 3px solid var(--teams-purple);
+            padding: 12px 18px; border-radius: 6px;
+            font-size: 12px; color: var(--teams-text);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4); max-width: 320px;
+            animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 3.7s forwards;
+        }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error   { border-left-color: var(--danger); }
+        .toast.warning { border-left-color: var(--warning); }
+        @keyframes toastIn  { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateX(20px); } }
+
+        /* ── Active task indicator in header ── */
+        .active-task-badge {
+            display: none; align-items: center; gap: 6px;
+            padding: 3px 10px; border-radius: 12px;
+            background: rgba(146,195,83,0.15); border: 1px solid rgba(146,195,83,0.3);
+            font-size: 11px; color: var(--success); font-weight: 600;
+        }
+        .active-task-badge.visible { display: flex; }
+        .task-pulse {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+            animation: blink 1.8s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+
+        /* ── Connection indicator ── */
+        .conn-badge {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--danger); margin-right: 6px;
+            display: inline-block; vertical-align: middle;
+            transition: background 0.4s;
+        }
+        .conn-badge.online { background: var(--success); box-shadow: 0 0 6px var(--success); animation: blink 2s infinite; }
 
         .task-sidebar {
             width: 300px;
@@ -346,9 +402,16 @@
 
         <!-- Header -->
         <header>
-            <div class="logo">EDU<span>TRACK</span> Pro</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="logo">EDU<span>TRACK</span> Pro</div>
+                <div class="active-task-badge" id="active-task-badge">
+                    <div class="task-pulse"></div>
+                    <span id="active-task-name">Zadanie aktywne</span>
+                </div>
+            </div>
             <div class="header-controls">
                 <span style="font-size:12px; color:var(--teams-text-secondary);">
+                    <span class="conn-badge" id="conn-dot"></span>
                     <b id="user-name">-</b> &nbsp;|&nbsp; <span id="user-dept" style="color:var(--teams-purple);">-</span>
                 </span>
                 <div class="theme-toggle" onclick="toggleTheme()" title="Przełącz motyw"></div>
@@ -451,6 +514,8 @@
 
     <div id="modal" role="dialog" aria-modal="true" aria-label="Podgląd ekranu ucznia" onclick="closeModal()" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);display:none;align-items:center;justify-content:center;z-index:1000;"><img id="modal-img" alt="Podgląd ekranu ucznia" style="max-width:95%;max-height:95%;border:3px solid var(--teams-purple);border-radius:4px;"></div>
 
+    <div id="toast-container"></div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // --- Authentication ---
@@ -479,7 +544,15 @@
 
         // --- Socket ---
         const socket = io({ auth: { token } });
-        socket.on('connect', () => { socket.emit('teacher-auth', token); });
+        socket.on('connect', () => {
+            socket.emit('teacher-auth', token);
+            document.getElementById('conn-dot').classList.add('online');
+            toast('Połączono z serwerem EduTrack.', 'success');
+        });
+        socket.on('disconnect', () => {
+            document.getElementById('conn-dot').classList.remove('online');
+            toast('Utracono połączenie z serwerem!', 'error');
+        });
 
         const grid = document.getElementById('grid');
         const mapGrid = document.getElementById('map-grid');
@@ -506,6 +579,14 @@
             feed.prepend(div);
             // Keep feed from growing unbounded
             if (feed.children.length > 60) feed.removeChild(feed.lastChild);
+        }
+
+        function toast(msg, type = 'info') {
+            const el = document.createElement('div');
+            el.className = 'toast ' + type;
+            el.innerText = msg;
+            document.getElementById('toast-container').appendChild(el);
+            setTimeout(() => el.remove(), 4200);
         }
 
         function getStudentLevel(score) {
@@ -611,6 +692,22 @@
             const avg = scoredCount > 0 ? Math.round(totalScorePercent / scoredCount) : 0;
             document.getElementById('stat-avg-score').innerText = avg + '%';
             document.getElementById('stat-alerts').innerText = totalAlerts;
+
+            // Empty state
+            if (keys.length === 0 && !document.getElementById('grid-empty')) {
+                const empty = document.createElement('div');
+                empty.id = 'grid-empty';
+                empty.className = 'empty-state';
+                empty.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    <h3>Brak połączonych uczniów</h3>
+                    <p>Terminale uczniów pojawią się tutaj automatycznie po uruchomieniu EduTrack Agent.</p>
+                `;
+                grid.appendChild(empty);
+            } else if (keys.length > 0) {
+                const empty = document.getElementById('grid-empty');
+                if (empty) empty.remove();
+            }
         }
 
         // --- Socket Events ---
@@ -620,6 +717,7 @@
             if (!students[id]) {
                 students[id] = { data: {}, lastImg: '', auditHtml: '' };
                 log(`Uczeń połączony: ${id}`);
+                toast(`🖥️ Nowy uczeń: ${id}`, 'success');
             }
             students[id].data = data;
             updateUI();
@@ -644,7 +742,9 @@
         });
 
         socket.on('teacher-alert', (data) => {
-            log(`🚨 ${data.id || ''}: ${data.msg || ''}`);
+            const msg = data.msg || '';
+            log(`🚨 ${data.id || ''}: ${msg}`);
+            toast(`🚨 ${data.id}: ${msg.substring(0, 60)}`, 'error');
         });
 
         socket.on('teacher-audit-report', (data) => {
@@ -667,7 +767,7 @@
             const type = document.getElementById('task-type').value;
             const templateFile = document.getElementById('task-template').files[0];
 
-            if (!title) { alert('Podaj tytuł zadania.'); return; }
+            if (!title) { toast('Podaj tytuł zadania.', 'warning'); return; }
 
             if (templateFile) {
                 const formData = new FormData();
@@ -688,6 +788,11 @@
 
             socket.emit('start-task', { title, description: desc, type });
             log(`Wypchnięto zadanie: "${title}" [${type}]`);
+            toast(`▶ Zadanie uruchomione: "${title}"`, 'success');
+            // Update active-task badge
+            const badge = document.getElementById('active-task-badge');
+            document.getElementById('active-task-name').innerText = title;
+            badge.classList.add('visible');
         }
 
         function sendDirectMessage(id) {
@@ -695,16 +800,16 @@
             if (msg) socket.emit('teacher-send-msg', { targetId: id, msg });
         }
         function remoteLock(id) {
-            if (confirm(`Zablokować ${id}?`)) socket.emit('teacher-send-msg', { targetId: id, msg: 'LOCKED', type: 'lock' });
+            if (confirm(`Zablokować ${id}?`)) { socket.emit('teacher-send-msg', { targetId: id, msg: 'LOCKED', type: 'lock' }); toast(`🔒 Zablokowano: ${id}`, 'warning'); }
         }
         function blackScreen(id) {
-            if (confirm(`ZABLOKOWAĆ EKRAN dla ${id}?`)) socket.emit('teacher-send-msg', { targetId: id, msg: 'BLACK_SCREEN', type: 'black-screen' });
+            if (confirm(`ZABLOKOWAĆ EKRAN dla ${id}?`)) { socket.emit('teacher-send-msg', { targetId: id, msg: 'BLACK_SCREEN', type: 'black-screen' }); toast(`⬛ Black screen: ${id}`, 'warning'); }
         }
         function lockAll() {
-            if (confirm('Zablokować wszystkich uczniów?')) socket.emit('teacher-send-msg', { msg: 'LOCKED', type: 'lock' });
+            if (confirm('Zablokować wszystkich uczniów?')) { socket.emit('teacher-send-msg', { msg: 'LOCKED', type: 'lock' }); toast('🔒 Wszyscy zablokowani.', 'warning'); }
         }
         function blackScreenAll() {
-            if (confirm('ZABLOKOWAĆ EKRAN dla wszystkich?')) socket.emit('teacher-send-msg', { msg: 'BLACK_SCREEN', type: 'black-screen' });
+            if (confirm('ZABLOKOWAĆ EKRAN dla wszystkich?')) { socket.emit('teacher-send-msg', { msg: 'BLACK_SCREEN', type: 'black-screen' }); toast('⬛ Black screen dla wszystkich.', 'warning'); }
         }
 
         // --- Reports (use fetch+blob to avoid exposing token in URL/logs) ---
@@ -781,7 +886,7 @@
         async function checkPlagiarism() {
             const a = document.getElementById('plag-a').value.trim();
             const b = document.getElementById('plag-b').value.trim();
-            if (!a || !b) { alert('Podaj hostnamy obu uczniów.'); return; }
+            if (!a || !b) { toast('Podaj hostnamy obu uczniów.', 'warning'); return; }
             const result = document.getElementById('plag-result');
             result.innerText = 'Sprawdzanie...';
             try {
