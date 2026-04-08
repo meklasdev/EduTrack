@@ -330,7 +330,7 @@
             Mapa
         </button>
 
-        <button class="nav-item" id="nav-leaderboard" onclick="switchView('leaderboard'); refreshLeaderboard();" title="Ranking">
+        <button class="nav-item" id="nav-leaderboard" onclick="showLeaderboard()" title="Ranking">
             <svg class="nav-icon-svg" viewBox="0 0 24 24"><path d="M6 20v-8M12 20V4M18 20v-5"/></svg>
             Ranking
         </button>
@@ -449,7 +449,7 @@
 
     </div><!-- /.main-container -->
 
-    <div id="modal" onclick="this.style.display='none'"><img id="modal-img" alt="Podgląd ekranu ucznia"></div>
+    <div id="modal" role="dialog" aria-modal="true" aria-label="Podgląd ekranu ucznia" onclick="closeModal()" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);display:none;align-items:center;justify-content:center;z-index:1000;"><img id="modal-img" alt="Podgląd ekranu ucznia" style="max-width:95%;max-height:95%;border:3px solid var(--teams-purple);border-radius:4px;"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -524,6 +524,11 @@
             if (view) view.classList.add('active');
             const navItem = document.getElementById('nav-' + viewId);
             if (navItem) navItem.classList.add('active');
+        }
+
+        function showLeaderboard() {
+            switchView('leaderboard');
+            refreshLeaderboard();
         }
 
         // --- Update UI (all student cards + map) ---
@@ -702,12 +707,32 @@
             if (confirm('ZABLOKOWAĆ EKRAN dla wszystkich?')) socket.emit('teacher-send-msg', { msg: 'BLACK_SCREEN', type: 'black-screen' });
         }
 
-        // --- Reports (token passed as query param since window.open cannot set headers) ---
-        function downloadPDFReport(id) {
-            window.open(`/api/report/${encodeURIComponent(id)}/pdf?token=${encodeURIComponent(token)}`);
+        // --- Reports (use fetch+blob to avoid exposing token in URL/logs) ---
+        async function downloadPDFReport(id) {
+            try {
+                const res = await fetch(`/api/report/${encodeURIComponent(id)}/pdf`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) { log('Błąd pobierania PDF: ' + res.status); return; }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `report_${id}.pdf`; a.click();
+                URL.revokeObjectURL(url);
+            } catch (e) { log('Błąd pobierania PDF: ' + e.message); }
         }
-        function downloadCertificate(id) {
-            window.open(`/api/certificate/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`);
+        async function downloadCertificate(id) {
+            try {
+                const res = await fetch(`/api/certificate/${encodeURIComponent(id)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) { log('Błąd certyfikatu: ' + (await res.text())); return; }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `cert_${id}.pdf`; a.click();
+                URL.revokeObjectURL(url);
+            } catch (e) { log('Błąd pobierania certyfikatu: ' + e.message); }
         }
         async function downloadReport(id) {
             try {
@@ -784,6 +809,9 @@
                 document.getElementById('modal').style.display = 'flex';
             }
         }
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
 
         // --- Initial Load ---
         async function loadStudents() {
@@ -802,6 +830,7 @@
 
         // --- Keyboard Shortcuts ---
         window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeModal(); return; }
             if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); startGlobalTask(); }
             if (e.ctrlKey && e.key === 'l') { e.preventDefault(); lockAll(); }
             if (e.ctrlKey && e.key === 'b') { e.preventDefault(); blackScreenAll(); }
