@@ -8,11 +8,11 @@
 <br/>
 
 <!-- Badges row 1 -->
-<img src="https://img.shields.io/badge/Wersja-1.2.0-6264a7?style=for-the-badge&logo=github&logoColor=white" alt="Version"/>
+<img src="https://img.shields.io/badge/Wersja-2.0.0-6264a7?style=for-the-badge&logo=github&logoColor=white" alt="Version"/>
 &nbsp;
 <img src="https://img.shields.io/badge/Status-Production%20Ready-4ec994?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Status"/>
 &nbsp;
-<img src="https://img.shields.io/badge/Platform-Ubuntu%20%7C%20Windows-0078d4?style=for-the-badge&logo=linux&logoColor=white" alt="Platform"/>
+<img src="https://img.shields.io/badge/Platform-Ubuntu%20%7C%20Windows%20%7C%20Docker-0078d4?style=for-the-badge&logo=linux&logoColor=white" alt="Platform"/>
 
 <br/><br/>
 
@@ -28,6 +28,8 @@
 <img src="https://img.shields.io/badge/Socket.io-Real--Time-010101?style=flat-square&logo=socket.io&logoColor=white" alt="Socket.io"/>
 &nbsp;
 <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker"/>
+&nbsp;
+<img src="https://img.shields.io/badge/Ollama-Local%20LLM-ffffff?style=flat-square&logo=ollama&logoColor=black" alt="Ollama"/>
 
 <br/><br/>
 
@@ -38,12 +40,15 @@
 &nbsp;
 <img src="https://img.shields.io/badge/Egzamin-INF.04-8b8dc7?style=flat-square" alt="INF.04"/>
 &nbsp;
+<img src="https://img.shields.io/badge/Roadmap-47%2F49%20done-4ec994?style=flat-square" alt="Roadmap"/>
+&nbsp;
 <img src="https://img.shields.io/badge/License-Proprietary-e05a6a?style=flat-square" alt="License"/>
 
 <br/><br/>
 
 <p><strong>EduTrack Pro</strong> to zaawansowany ekosystem do zarządzania egzaminami informatycznymi —<br/>
-od automatycznego sprawdzania arkuszy Excel po monitoring antycheatowy w czasie rzeczywistym.</p>
+od automatycznego sprawdzania arkuszy Excel i wieloformatowego oceniania AI<br/>
+po monitoring antycheatowy z analizą OCR i blokadą sieci w czasie rzeczywistym.</p>
 
 <br/>
 
@@ -80,10 +85,13 @@ od automatycznego sprawdzania arkuszy Excel po monitoring antycheatowy w czasie 
 | Komponent | Opis |
 |-----------|------|
 | **Terminal Ucznia** | Przeglądarkowy lub desktopowy (Electron) interfejs do egzaminów z arkuszami |
-| **Panel Nauczyciela** | Dashboard w stylu Microsoft Teams z monitoringiem RT |
-| **AutoGrader** | Automatyczna ocena plików `.xlsx` — formuły, wartości, formatowanie |
-| **Anti-Cheat Engine** | Wykrywanie AI, aplikacji i monitorowanie okien przez Windows API |
+| **Panel Nauczyciela** | Dashboard w stylu Microsoft Teams z monitoringiem RT, mapą 3D, heatmapą |
+| **MultiGrader** | Automatyczna ocena `.xlsx`, `.docx`, `.pptx`, `.sql`, `.pkt`, `.svg/.xcf`, `.pcap`, C++, Python |
+| **Anti-Cheat Engine** | OCR zrzutów, wykrywanie AI, analiza myszy, blokada sieci, detekcja USB |
+| **AI Engine** | Lokalny LLM (Ollama) — generowanie egzaminów, ocenianie kodu, analiza wyników |
 | **System Raportów** | PDF cheat evidence, certyfikaty, JSON exports, detekcja plagiatów |
+| **Chrome Extension** | Rozszerzenie Manifest V3 dla szkół Chromebook — blokada zabronionych stron |
+| **Plugin System** | Otwarte API dla wtyczek 3rd-party (`server/plugins/`) |
 
 ---
 
@@ -98,26 +106,54 @@ od automatycznego sprawdzania arkuszy Excel po monitoring antycheatowy w czasie 
 - 🔒 Blokada ekranu na polecenie nauczyciela (web + Electron)
 - 🎓 Identyfikacja ucznia z modalem logowania (web terminal)
 - 🔔 Toast notifications zamiast blokujących `alert()`
+- ⚡ **Tryb Offline** — zadanie buforowane lokalnie, wynik wysyłany po reconnect
 
 ### 🛡️ System Antycheatowy
 
-- 🤖 Wykrywanie AI: ChatGPT, Claude, Gemini, DeepSeek, Ollama, Copilot
+- 🤖 Wykrywanie AI: ChatGPT, Claude, Gemini, DeepSeek, Ollama, Copilot i inne
 - 👁️ Monitoring okien przez Windows API (PowerShell + User32.dll)
 - ⚠️ Alert przy alt-tab / opuszczeniu okna egzaminacyjnego
 - 💬 Blokada komunikatorów: Discord, WhatsApp, Messenger, Telegram
 - ⬛ Automatyczny **black-screen** po przekroczeniu 10 alertów
+- 📸 **OCR zrzutów ekranu** — tesseract.js wykrywa zakazany tekst na ekranie (`OCR_ENABLED=true`)
+- 🖱️ **Analiza zachowania myszy** — wykrywanie nerwowych ruchów wskazujących stres
+- 🔌 **Wykrywanie USB** — alert przy podłączeniu nośnika wymiennego
+- 🌐 **Network Lockdown** — blokada iptables/netsh na stacji ucznia na żądanie
 - 📄 Generator raportu "Cheat Evidence" PDF dla dyrektora / rodziców
 
 ### 📊 Panel Nauczyciela
 
 - 🖼️ Miniatury ekranów uczniów w czasie rzeczywistym (co 3s)
 - 🗺️ **Mapa klasy 3D** z wizualizacją biurek (perspektywa isometryczna)
-- 🏆 **Ranking** z systemem punktów, kar za alerty i medalami
+- 🔥 **Heatmapa aktywności** — siatka 24h z gęstością zdarzeń
+- 🏆 **Ranking** z systemem punktów, kar za alerty i medalami 🥇🥈🥉🛡️
 - 📬 Wiadomości bezpośrednie, zdalna blokada, black screen per uczeń
-- ↺ **Reset alertów** ucznia (nowe!)
-- 🏫 **Przypisanie ucznia do działu** (nowe!)
+- ↺ **Reset alertów** ucznia, przypisanie do działu
 - 📊 Paski statystyk: aktywni uczniowie, łączne alerty, średni wynik
+- 🛒 **Marketplace szablonów** — udostępnianie i pobieranie wzorców egzaminów
 - ⌨️ 8 skrótów klawiszowych dla szybkiego działania
+- 🎨 4 skórki kolorystyczne + tryb jasny, logo/nazwa szkoły
+
+### 🤖 AI & Inteligentna Ocena
+
+- 🧠 **Lokalny LLM (Ollama)** — bez danych w chmurze, endpoint: `GET /api/ai/status`
+- 🖥️ **Ocenianie kodu AI** — Python/C++ styl + logika z `AI_GRADING=true`
+- ⚠️ **Detekcja zagrożenia** — `GET /api/analytics/at-risk` flaguje uczniów z <50% lub ≥3 alertami
+- 📝 **Generowanie egzaminów AI** — `POST /api/analytics/generate-exam` — pytania w języku polskim
+- 📊 **Podsumowanie wyników** — `GET /api/analytics/summary` z opcjonalnym narracją AI
+
+### 📁 Wieloformatowy Silnik Oceniania
+
+| Format | Obsługa | Endpoint |
+|--------|---------|----------|
+| `.xlsx` | Formuły, wartości, formatowanie, tolerancja ±0.01 | `POST /api/check-excel` |
+| `.docx` | Słowa kluczowe, liczba słów, struktura akapitów | `POST /api/check-docx` |
+| `.pptx` | Liczba slajdów, słowa kluczowe | `POST /api/check-pptx` |
+| `.sql` | Normalizacja SQL, partial credit 0.5 za typ/tabelę | `POST /api/check-sql` |
+| `.pkt` | Topologia Packet Tracer — liczba urządzeń i połączeń | `POST /api/check-pkt` |
+| `.svg/.xcf` | Liczba elementów SVG / sygnatura XCF | `POST /api/check-graphics` |
+| `.pcap` | Liczba pakietów, wykrywanie protokołów | `POST /api/check-pcap` |
+| `.py / .cpp` | Kompilacja `g++` / interpreter, porównanie wyjścia | `POST /api/check-code` |
 
 ### 🔐 Autoryzacja i Wielodepartamentowość
 
@@ -127,14 +163,6 @@ od automatycznego sprawdzania arkuszy Excel po monitoring antycheatowy w czasie 
 - 🛡️ Rate limiting na endpointach mutujących dane (60 req/min)
 - 🗄️ Redis-based session management
 
-### 🤖 Silnik Oceniania — ExcelLogicChecker
-
-- 🧮 Porównanie formuł (normalizacja, niezależna od spacji i `$`)
-- ✅ Walidacja wartości z tolerancją zaokrąglenia (±0.01)
-- 📝 Sprawdzanie formatowania (pogrubienie komórek)
-- 🔄 Tryb **offline** (Excel lokalny) i **online** (wbudowany arkusz)
-- 🕵️ Detekcja plagiatów: ≥90% zgodności = alert plagiat
-
 ---
 
 ## 🛠️ Stack technologiczny
@@ -142,15 +170,23 @@ od automatycznego sprawdzania arkuszy Excel po monitoring antycheatowy w czasie 
 | Warstwa | Technologia | Rola |
 |---------|-------------|------|
 | **Backend** | Node.js 20, Express.js | HTTP server, REST API |
-| **Real-time** | Socket.io | WebSocket — monitoring RT |
+| **Real-time** | Socket.io + Redis Adapter | WebSocket — monitoring RT, skalowanie |
 | **Baza danych** | PostgreSQL + Prisma ORM | Persistent storage |
-| **Cache / Sesje** | Redis | Session store, rate limiting |
+| **Cache / Sesje** | Redis | Session store, pub/sub |
 | **Arkusze** | ExcelJS, jspreadsheet CE v4 | Grading engine, student UI |
+| **Dokumenty** | mammoth (.docx), AdmZip (.pptx/.pkt) | Multi-format grading |
+| **Sieć/pcap** | binarny parser | Wireshark .pcap analysis |
+| **Kod** | `g++`, `python` CLI | Kompilacja i uruchomienie kodu |
+| **AI / LLM** | Ollama HTTP client | Lokalne LLM — ocenianie, generowanie |
+| **OCR** | tesseract.js / CLI | Wykrywanie zakazanego tekstu |
 | **PDF** | PDFKit | Raporty, certyfikaty |
-| **Desktop** | Electron 28 | Student agent (Windows) |
+| **Backup** | node-schedule + AWS S3 SDK | Zaplanowane pg_dump + upload S3 |
+| **Desktop** | Electron 28+ | Student agent (Windows / arm64) |
 | **Discovery** | Bonjour / mDNS | Auto-discovery w LAN |
 | **Auth** | JWT, bcrypt | Bezpieczna autoryzacja |
+| **Logowanie** | Winston (JSON/ELK) | Structured logging |
 | **Deploy** | Docker Compose | PostgreSQL + Redis stack |
+| **Extension** | Chrome MV3 | Student agent dla Chromebook |
 
 ---
 
@@ -166,22 +202,40 @@ EduTrack/
 │   │   ├── login.html           # 🔐  Strona logowania
 │   │   └── index.html           # 🎓  Terminal ucznia (przeglądarka)
 │   ├── 📂 src/
-│   │   ├── 📂 logic/            # ExcelLogicChecker — silnik oceniania
-│   │   ├── 📂 middleware/       # JWT authMiddleware, rate limiter
+│   │   ├── 📂 logic/
+│   │   │   ├── grading-service.js   # MultiGrader — docx/pptx/sql/pkt/pcap/cpp/py/svg
+│   │   │   ├── excel-checker.js     # ExcelLogicChecker — formuły, wartości, format
+│   │   │   ├── ocr-service.js       # OCR zrzutów ekranu (tesseract.js)
+│   │   │   ├── ollama-client.js     # Klient lokalnego LLM (Ollama)
+│   │   │   ├── network-lockdown.js  # Blokada sieci iptables/netsh
+│   │   │   ├── backup-service.js    # Backup pg_dump + S3
+│   │   │   └── plugin-loader.js     # System wtyczek 3rd-party
+│   │   ├── 📂 middleware/       # JWT authMiddleware, rate limiter, logger
 │   │   └── 📂 routes/           # API routes (auth)
+│   ├── 📂 plugins/              # Katalog wtyczek zewnętrznych
 │   └── 📂 test-data/            # Szablony .xlsx do oceniania
 │
-├── 📂 app-student/              # Aplikacja Electron (Windows agent)
+├── 📂 app-student/              # Aplikacja Electron (Windows / RPi agent)
 │   ├── main.js                  # Electron main process
 │   ├── preload.js               # Context bridge (bezpieczne IPC)
-│   └── 📂 ui/index.html         # UI terminala ucznia
+│   └── 📂 ui/
+│       ├── index.html           # UI terminala ucznia
+│       ├── docs.html            # Asystent dokumentacji (36 wpisów)
+│       └── message.html         # Okno wiadomości
+│
+├── 📂 chrome-extension/         # Rozszerzenie Chrome MV3 (Chromebook)
+│   ├── manifest.json            # Manifest V3
+│   ├── background.js            # Service worker
+│   ├── content.js               # Blokada zabronionych stron
+│   ├── popup.html / popup.js    # UI popup
+│   └── options.html / options.js# Ustawienia rozszerzenia
 │
 ├── 📂 docs/
 │   └── index.html               # 🌐  Interaktywna strona projektu
 │
 ├── docker-compose.yml           # PostgreSQL + Redis
 ├── setup-ubuntu.sh              # Auto-installer (Ubuntu)
-├── TODO.md                      # 🗺️  Roadmap (15/52 zaimplementowane)
+├── TODO.md                      # 🗺️  Roadmap (47/49 zaimplementowane)
 └── REQUIREMENTS_INF.md          # Wymagania egzaminacyjne CKE
 ```
 
@@ -244,6 +298,17 @@ JWT_SECRET="twoj-tajny-klucz-jwt-min-32-znaki"
 SESSION_SECRET="twoj-tajny-klucz-sesji"
 NODE_ENV="production"
 PORT=8080
+
+# Opcjonalne
+TLS_CERT="/path/to/cert.pem"       # HTTPS — WebSocket po TLS
+TLS_KEY="/path/to/key.pem"
+CLUSTER=true                        # Node.js cluster mode (multi-CPU)
+OCR_ENABLED=true                    # OCR zrzutów (wymaga tesseract)
+AI_GRADING=true                     # Ocenianie kodu przez Ollama
+LOG_TO_FILE=true                    # Logi Winston → logs/app.log
+BACKUP_S3_BUCKET="moj-bucket"       # Backup bazy do S3
+BACKUP_S3_KEY_ID="..."
+BACKUP_S3_SECRET="..."
 ```
 
 ---
@@ -252,20 +317,78 @@ PORT=8080
 
 > Endpointy oznaczone `🔑 auth` wymagają nagłówka `Authorization: Bearer <token>`.
 
+### Autoryzacja
+
 | Metoda | Endpoint | Auth | Opis |
 |--------|----------|:----:|------|
 | `POST` | `/api/auth/register` | — | Rejestracja nauczyciela |
 | `POST` | `/api/auth/login` | — | Logowanie — zwraca JWT |
+
+### Uczniowie
+
+| Metoda | Endpoint | Auth | Opis |
+|--------|----------|:----:|------|
 | `GET` | `/api/students` | 🔑 | Lista uczniów w dziale |
-| `POST` | `/api/check-excel` | — | Sprawdź arkusz ucznia |
+| `POST` | `/api/students/:hostname/reset-alerts` | 🔑 | Resetuj alerty ucznia |
+| `POST` | `/api/students/:hostname/assign-department` | 🔑 | Przypisz ucznia do działu |
+
+### Ocenianie
+
+| Metoda | Endpoint | Auth | Opis |
+|--------|----------|:----:|------|
+| `POST` | `/api/check-excel` | — | Sprawdź arkusz `.xlsx` |
+| `POST` | `/api/check-code` | — | Sprawdź kod `.py` / `.cpp` |
+| `POST` | `/api/check-docx` | — | Sprawdź dokument `.docx` |
+| `POST` | `/api/check-pptx` | — | Sprawdź prezentację `.pptx` |
+| `POST` | `/api/check-sql` | — | Sprawdź plik `.sql` |
+| `POST` | `/api/check-pkt` | — | Sprawdź topologię Packet Tracer |
+| `POST` | `/api/check-pcap` | — | Sprawdź przechwyt Wireshark |
+| `POST` | `/api/check-graphics` | — | Sprawdź plik `.svg` / `.xcf` |
 | `POST` | `/api/upload-template` | 🔑 | Wgraj wzorzec oceniania `.xlsx` |
-| `GET` | `/api/leaderboard` | — | Ranking uczniów |
+| `POST` | `/api/detect-plagiarism` | 🔑 | Porównaj pliki uczniów |
+
+### Raporty i certyfikaty
+
+| Metoda | Endpoint | Auth | Opis |
+|--------|----------|:----:|------|
 | `GET` | `/api/report/:hostname` | 🔑 | Raport JSON ucznia |
 | `GET` | `/api/report/:hostname/pdf` | 🔑 | Raport PDF (cheat evidence) |
 | `GET` | `/api/certificate/:hostname` | 🔑 | Certyfikat ukończenia (PDF) |
-| `POST` | `/api/detect-plagiarism` | 🔑 | Porównaj pliki uczniów |
-| `POST` | `/api/students/:hostname/reset-alerts` | 🔑 | Resetuj alerty ucznia |
-| `POST` | `/api/students/:hostname/assign-department` | 🔑 | Przypisz ucznia do działu |
+| `GET` | `/api/leaderboard` | — | Ranking uczniów |
+
+### Wspólna ocena
+
+| Metoda | Endpoint | Auth | Opis |
+|--------|----------|:----:|------|
+| `GET` | `/api/review/:hostname` | 🔑 | Pobierz komentarze oceniania |
+| `POST` | `/api/review/:hostname` | 🔑 | Dodaj komentarz nauczyciela |
+| `DELETE` | `/api/review/:hostname/:index` | 🔑 | Usuń komentarz |
+
+### AI & Analityka
+
+| Metoda | Endpoint | Auth | Opis |
+|--------|----------|:----:|------|
+| `GET` | `/api/ai/status` | 🔑 | Status lokalnego LLM (Ollama) |
+| `GET` | `/api/analytics/at-risk` | 🔑 | Lista uczniów zagrożonych |
+| `GET` | `/api/analytics/summary` | 🔑 | Podsumowanie wyników + AI narracja |
+| `POST` | `/api/analytics/generate-exam` | 🔑 | Generuj egzamin AI na słabe strony |
+
+### Bezpieczeństwo
+
+| Metoda | Endpoint | Auth | Opis |
+|--------|----------|:----:|------|
+| `POST` | `/api/ocr-scan` | 🔑 | Skanowanie zrzutu OCR |
+| `POST` | `/api/network-lockdown/apply` | 🔑 | Włącz blokadę sieci na stacji |
+| `POST` | `/api/network-lockdown/remove` | 🔑 | Wyłącz blokadę sieci |
+
+### Marketplace
+
+| Metoda | Endpoint | Auth | Opis |
+|--------|----------|:----:|------|
+| `GET` | `/api/marketplace` | 🔑 | Lista szablonów egzaminów |
+| `POST` | `/api/marketplace` | 🔑 | Opublikuj szablon |
+| `GET` | `/api/marketplace/:id/download` | 🔑 | Pobierz szablon |
+| `DELETE` | `/api/marketplace/:id` | 🔑 | Usuń szablon (autor) |
 
 ---
 
@@ -294,14 +417,17 @@ Pełna lista z oznaczeniem co jest zaimplementowane: **[TODO.md](./TODO.md)**
 
 | Kategoria | Zaimplementowane | Planowane |
 |-----------|:---:|:---:|
-| 🏛️ Core Architecture & Backend | 4 | 8 |
-| 🛡️ Anti-Cheat & Security | 3 | 5 |
-| 🤖 AI & Documentation | 0 | 6 |
-| 📊 Advanced Grading Engine | 1 | 9 |
-| 🎨 UI/UX & Frontend | 5 | 4 |
-| 🌐 Ecosystem & Integration | 2 | 5 |
+| 🏛️ Core Architecture & Backend | 12 | 0 |
+| 🛡️ Anti-Cheat & Security | 6 | 1 |
+| 🤖 AI & Documentation | 6 | 0 |
+| 📊 Advanced Grading Engine | 9 | 0 |
+| 🎨 UI/UX & Frontend | 9 | 0 |
+| 🌐 Ecosystem & Integration | 5 | 1 |
 
-**Zaimplementowane: 15/52 — aktywnie rozwijane 🚀**
+**Zaimplementowane: 47/49 — gotowy do użycia produkcyjnego 🚀**
+
+> Dwa nieukończone punkty wymagają infrastruktury poza zakresem codebase'u:
+> sterownik kernela Windows (blokada task switch) oraz hosting SaaS w chmurze.
 
 </div>
 
