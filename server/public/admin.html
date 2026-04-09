@@ -535,15 +535,31 @@
                 <input class="teams-input" id="task-title" type="text" placeholder="Tytuł zadania...">
                 <textarea class="teams-input teams-textarea" id="task-desc" placeholder="Instrukcje / Wskazówki..."></textarea>
 
-                <div class="section-title" style="margin-top:4px;">Wzór (.xlsx) do oceny</div>
-                <input type="file" id="task-template" accept=".xlsx" style="font-size:12px; margin-bottom:12px; color:var(--teams-text);">
-
-                <select class="teams-input" id="task-type">
-                    <option value="online">Tryb Online (Wbudowany arkusz)</option>
-                    <option value="offline">Tryb Lokalny (MS Excel)</option>
+                <select class="teams-input" id="task-type" onchange="onTaskTypeChange()">
+                    <option value="online">📊 Tryb Online (Wbudowany arkusz)</option>
+                    <option value="offline">📊 Tryb Lokalny (MS Excel)</option>
+                    <option value="docx">📝 Dokument Word (.docx)</option>
+                    <option value="pptx">📑 Prezentacja PowerPoint (.pptx)</option>
+                    <option value="sql">🗄️ Skrypt SQL (.sql)</option>
+                    <option value="code-python">🐍 Kod Python (.py)</option>
+                    <option value="code-cpp">⚙️ Kod C++ (.cpp)</option>
+                    <option value="graphics-svg">🎨 Grafika SVG (.svg)</option>
+                    <option value="pkt">🌐 Packet Tracer (.pkt)</option>
                 </select>
 
-                <button class="btn-teams" onclick="startGlobalTask()" style="width:100%; margin-bottom:8px;">▶ Wypchnij Zadanie</button>
+                <div id="template-section" style="margin-top:8px;">
+                    <div class="section-title" style="margin-top:4px;" id="template-label">Wzór do oceny</div>
+                    <input type="file" id="task-template" accept=".xlsx" style="font-size:12px; margin-bottom:12px; color:var(--teams-text);">
+                </div>
+
+                <div id="code-options-section" style="display:none; margin-top:4px;">
+                    <div class="section-title">Oczekiwane wyjście (opcjonalnie)</div>
+                    <input class="teams-input" id="task-expected-output" type="text" placeholder="np. Hello World" style="margin-bottom:4px;">
+                    <div class="section-title">Dane wejściowe (opcjonalnie)</div>
+                    <input class="teams-input" id="task-input" type="text" placeholder="np. 5 3">
+                </div>
+
+                <button class="btn-teams" onclick="startGlobalTask()" style="width:100%; margin-bottom:8px; margin-top:12px;">▶ Wypchnij Zadanie</button>
                 <button class="btn-teams btn-outline" onclick="lockAll()" style="width:100%; margin-bottom:8px;">🔒 Zablokuj Wszystkich</button>
                 <button class="btn-teams" onclick="blackScreenAll()" style="width:100%; background:var(--danger);">⬛ Black Screen Wszystkich</button>
             </div>
@@ -997,33 +1013,79 @@
             log(`🔍 Audyt oprogramowania: ${id}`);
         });
 
+        // --- Task type helpers ---
+        const TASK_TYPE_CONFIG = {
+            // 'online' uses the built-in spreadsheet editor; 'offline' uses MS Excel locally.
+            // Both grade against the same .xlsx template via the same endpoint.
+            'online':        { accept: '.xlsx',        uploadUrl: '/api/upload-template',          needsTemplate: false, label: 'Wzór (.xlsx) do oceny' },
+            'offline':       { accept: '.xlsx',        uploadUrl: '/api/upload-template',          needsTemplate: false, label: 'Wzór (.xlsx) do oceny' },
+            'docx':          { accept: '.docx',        uploadUrl: '/api/upload-template-docx',     needsTemplate: true,  label: 'Wzór (.docx) do oceny' },
+            'pptx':          { accept: '.pptx',        uploadUrl: '/api/upload-template-pptx',     needsTemplate: true,  label: 'Wzór (.pptx) do oceny' },
+            'sql':           { accept: '.sql',         uploadUrl: '/api/upload-template-sql',      needsTemplate: true,  label: 'Wzór (.sql) do oceny' },
+            'code-python':   { accept: '.py',          uploadUrl: null,                            needsTemplate: false, label: null },
+            'code-cpp':      { accept: '.cpp,.c',      uploadUrl: null,                            needsTemplate: false, label: null },
+            'graphics-svg':  { accept: '.svg',         uploadUrl: '/api/upload-template-graphics', needsTemplate: true,  label: 'Wzór (.svg) do oceny' },
+            'pkt':           { accept: '.pkt',         uploadUrl: '/api/upload-template-pkt',      needsTemplate: true,  label: 'Wzór (.pkt) do oceny' },
+        };
+
+        function onTaskTypeChange() {
+            const type = document.getElementById('task-type').value;
+            const cfg  = TASK_TYPE_CONFIG[type] || TASK_TYPE_CONFIG['online'];
+            const templateSection = document.getElementById('template-section');
+            const codeSection = document.getElementById('code-options-section');
+            const templateInput = document.getElementById('task-template');
+            const templateLabel = document.getElementById('template-label');
+
+            const isCode = type === 'code-python' || type === 'code-cpp';
+            templateSection.style.display = isCode ? 'none' : 'block';
+            codeSection.style.display = isCode ? 'block' : 'none';
+
+            if (!isCode) {
+                templateInput.accept = cfg.accept;
+                templateLabel.textContent = cfg.label;
+            }
+        }
+
         // --- Task Controls ---
         async function startGlobalTask() {
             const title = document.getElementById('task-title').value.trim();
             const desc = document.getElementById('task-desc').value.trim();
             const type = document.getElementById('task-type').value;
             const templateFile = document.getElementById('task-template').files[0];
+            const cfg = TASK_TYPE_CONFIG[type] || TASK_TYPE_CONFIG['online'];
 
             if (!title) { toast('Podaj tytuł zadania.', 'warning'); return; }
 
-            if (templateFile) {
+            if (templateFile && cfg.uploadUrl) {
                 const formData = new FormData();
                 formData.append('template', templateFile);
+                if (type === 'graphics-svg') formData.append('format', 'svg');
                 try {
-                    const uploadRes = await fetch('/api/upload-template', {
+                    const uploadRes = await fetch(cfg.uploadUrl, {
                         method: 'POST',
                         body: formData,
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (!uploadRes.ok) throw new Error(await uploadRes.text());
-                    log('Wzorzec xlsx przesłany pomyślnie.');
+                    log('Wzorzec przesłany pomyślnie.');
                 } catch (e) {
                     log('Błąd przesyłania wzorca: ' + e.message);
                     return;
                 }
+            } else if (cfg.needsTemplate && !templateFile) {
+                toast('Dla tego typu zadania wymagany jest wzorzec do oceny.', 'warning');
+                return;
             }
 
-            socket.emit('start-task', { title, description: desc, type });
+            const taskData = { title, description: desc, type };
+            if (type === 'code-python' || type === 'code-cpp') {
+                const expectedOutput = document.getElementById('task-expected-output').value.trim();
+                const input = document.getElementById('task-input').value.trim();
+                if (expectedOutput) taskData.expectedOutput = expectedOutput;
+                if (input) taskData.codeInput = input;
+            }
+
+            socket.emit('start-task', taskData);
             log(`Wypchnięto zadanie: "${title}" [${type}]`);
             toast(`▶ Zadanie uruchomione: "${title}"`, 'success');
             // Update active-task badge

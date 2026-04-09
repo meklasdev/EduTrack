@@ -338,6 +338,23 @@
         }
         body.light #spreadsheet-wrap { background: #fff; }
 
+        #upload-wrap {
+            flex: 1;
+            background: var(--bg);
+            text-align: center;
+            color: var(--text);
+        }
+        #upload-wrap input[type="file"] {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            max-width: 340px;
+            width: 100%;
+        }
+
         /* Waiting state */
         #waiting {
             position: absolute;
@@ -529,7 +546,7 @@
         <div id="workspace">
             <div id="editor-topbar">
                 <span class="tab" id="filename-tab">student_worksheet.xlsx</span>
-                <span class="editor-mode">Tryb: Arkusz Kalkulacyjny</span>
+                <span class="editor-mode" id="editor-mode-label">Tryb: Arkusz Kalkulacyjny</span>
             </div>
 
             <div id="spreadsheet-wrap" style="position:relative;">
@@ -542,6 +559,14 @@
                 <!-- Spreadsheet mounts here -->
                 <div id="spreadsheet"></div>
             </div>
+
+            <!-- File upload workspace (shown for non-spreadsheet task types) -->
+            <div id="upload-wrap" style="display:none; flex-direction:column; align-items:center; justify-content:center; flex:1; padding:40px; gap:20px;">
+                <div style="font-size:3rem;" id="upload-icon">📄</div>
+                <div style="font-size:1.1rem; font-weight:600;" id="upload-hint">Wybierz plik do przesłania</div>
+                <input type="file" id="upload-file" style="font-size:1rem; padding:8px;">
+                <div style="font-size:0.8rem; color:var(--muted);" id="upload-desc"></div>
+            </div>
         </div>
     </div>
 
@@ -553,6 +578,24 @@
         let examActive = false;
         let examStartTime = null;
         let timerInterval = null;
+        let currentTask = null;
+
+        /* ── Task type configuration ────────────────────────────── */
+        const TASK_MODES = {
+            'online':       { mode: 'spreadsheet', icon: '📊', label: 'Arkusz Kalkulacyjny',    accept: '.xlsx',     hint: 'Pracuj w arkuszu kalkulacyjnym poniżej.' },
+            'offline':      { mode: 'upload',      icon: '📊', label: 'Plik Excel',             accept: '.xlsx',     hint: 'Otwórz MS Excel, wykonaj zadanie i prześlij plik.' },
+            'docx':         { mode: 'upload',      icon: '📝', label: 'Dokument Word',          accept: '.docx',     hint: 'Utwórz dokument Word i prześlij plik .docx.' },
+            'pptx':         { mode: 'upload',      icon: '📑', label: 'Prezentacja',            accept: '.pptx',     hint: 'Utwórz prezentację PowerPoint i prześlij plik .pptx.' },
+            'sql':          { mode: 'upload',      icon: '🗄️', label: 'Skrypt SQL',             accept: '.sql',      hint: 'Napisz skrypt SQL i prześlij plik .sql.' },
+            'code-python':  { mode: 'upload',      icon: '🐍', label: 'Kod Python',             accept: '.py',       hint: 'Napisz program w Pythonie i prześlij plik .py.' },
+            'code-cpp':     { mode: 'upload',      icon: '⚙️', label: 'Kod C++',               accept: '.cpp,.c',   hint: 'Napisz program w C++ i prześlij plik .cpp lub .c.' },
+            'graphics-svg': { mode: 'upload',      icon: '🎨', label: 'Grafika SVG',            accept: '.svg',      hint: 'Utwórz grafikę SVG i prześlij plik .svg.' },
+            'pkt':          { mode: 'upload',      icon: '🌐', label: 'Packet Tracer',          accept: '.pkt',      hint: 'Zapisz projekt Packet Tracer i prześlij plik .pkt.' },
+        };
+
+        function getTaskMode(type) {
+            return TASK_MODES[type] || TASK_MODES['online'];
+        }
 
         /* ── Theme ──────────────────────────────────────────────── */
         function toggleTheme() {
@@ -613,13 +656,35 @@
 
         /* ── Task display ───────────────────────────────────────── */
         function applyTask(t, isOffline) {
+            currentTask = t;
             const label = isOffline ? t.title + ' (OFFLINE)' : t.title;
             document.getElementById('task-name').textContent = label;
             document.getElementById('task-desc').innerHTML  = (t.description || '').replace(/\n/g, '<br>');
             document.getElementById('topbar-task').innerHTML = `<strong>Zadanie:</strong> ${t.title}`;
-            const fname = t.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.xlsx';
-            document.getElementById('filename-tab').textContent = fname;
             document.getElementById('submit-btn').disabled = false;
+
+            const cfg = getTaskMode(t.type);
+            document.getElementById('editor-mode-label').textContent = `Tryb: ${cfg.label}`;
+
+            if (cfg.mode === 'spreadsheet') {
+                const fname = t.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.xlsx';
+                document.getElementById('filename-tab').textContent = fname;
+                document.getElementById('spreadsheet-wrap').style.display = 'block';
+                document.getElementById('upload-wrap').style.display = 'none';
+            } else {
+                document.getElementById('filename-tab').textContent = t.title;
+                document.getElementById('spreadsheet-wrap').style.display = 'none';
+                const uploadWrap = document.getElementById('upload-wrap');
+                uploadWrap.style.display = 'flex';
+                document.getElementById('upload-icon').textContent = cfg.icon;
+                document.getElementById('upload-hint').textContent = cfg.hint;
+                document.getElementById('upload-desc').textContent = `Akceptowane formaty: ${cfg.accept}`;
+                const fileInput = document.getElementById('upload-file');
+                fileInput.accept = cfg.accept;
+                fileInput.value = '';
+                document.getElementById('waiting').classList.add('hidden');
+            }
+
             if (isOffline) {
                 document.getElementById('offline-banner').style.display = 'block';
                 showToast('⚡ Zadanie załadowane z pamięci podręcznej (offline)', 5000);
@@ -636,6 +701,12 @@
             }
         }
 
+        /* ── File selection: update filename tab with actual file name ── */
+        document.getElementById('upload-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) document.getElementById('filename-tab').textContent = file.name;
+        });
+
         /* ── Offline-first: load cached task on startup ──────────── */
         (async function loadCachedTask() {
             try {
@@ -643,7 +714,9 @@
                 if (stored) {
                     const t = JSON.parse(stored);
                     applyTask(t, true);
-                    setTimeout(() => { if (!jexcelInstance) initSpreadsheet(); }, 800);
+                    if (getTaskMode(t.type).mode === 'spreadsheet') {
+                        setTimeout(() => { if (!jexcelInstance) initSpreadsheet(); }, 800);
+                    }
                 }
                 // Also check main-process disk cache
                 if (api && api.onCacheLoaded) {
@@ -651,7 +724,9 @@
                         if (cache && cache.lastTask && !examActive) {
                             localStorage.setItem('et_offline_task', JSON.stringify(cache.lastTask));
                             applyTask(cache.lastTask, true);
-                            setTimeout(() => { if (!jexcelInstance) initSpreadsheet(); }, 800);
+                            if (getTaskMode(cache.lastTask.type).mode === 'spreadsheet') {
+                                setTimeout(() => { if (!jexcelInstance) initSpreadsheet(); }, 800);
+                            }
                         }
                     });
                 }
@@ -699,7 +774,7 @@
                 // Persist via main process too (disk cache)
                 api.cacheTask && api.cacheTask(t);
                 applyTask(t, false);
-                if (!jexcelInstance) initSpreadsheet();
+                if (getTaskMode(t.type).mode === 'spreadsheet' && !jexcelInstance) initSpreadsheet();
                 startTimer();
                 showToast('🚀 Zadanie uruchomione!');
             });
@@ -707,36 +782,89 @@
 
         /* ── Submit / Check ─────────────────────────────────────── */
         document.getElementById('submit-btn').addEventListener('click', async () => {
-            if (!jexcelInstance) return;
-
             const btn = document.getElementById('submit-btn');
+            const taskType = currentTask ? currentTask.type : 'online';
+            const cfg = getTaskMode(taskType);
+
+            if (cfg.mode === 'spreadsheet' && !jexcelInstance) return;
+            if (cfg.mode === 'upload') {
+                const fileInput = document.getElementById('upload-file');
+                if (!fileInput.files.length) {
+                    showToast('❌ Wybierz plik do przesłania.', 4000);
+                    return;
+                }
+            }
+
             btn.disabled = true;
             btn.textContent = '⏳ Sprawdzam...';
 
-            const rawData = jexcelInstance.getData();
-            const luckysheetData = [{ name: 'Arkusz1', celldata: [] }];
-            rawData.forEach((row, r) => {
-                row.forEach((cell, c) => {
-                    const formula = jexcelInstance.getFormula([c, r]);
-                    const style   = jexcelInstance.getStyle([c, r]);
-                    const isBold  = style && style.match(/font-weight:\s*bold/);
-                    if (cell !== '' || formula || isBold) {
-                        luckysheetData[0].celldata.push({
-                            r, c, v: { v: cell, f: formula ? '=' + formula : null, m: cell, bl: isBold ? 1 : 0 }
-                        });
-                    }
-                });
-            });
-
             try {
                 const hostname = api ? await api.getHostname() : (location.hostname || 'student');
-                const res = await fetch(`${serverUrl}/api/check-excel`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostname, sheetJson: JSON.stringify(luckysheetData) })
-                });
-                const report = await res.json();
-                if (!res.ok) throw new Error(report.error || 'Błąd serwera');
+                let res, report;
+
+                if (cfg.mode === 'spreadsheet') {
+                    const rawData = jexcelInstance.getData();
+                    const luckysheetData = [{ name: 'Arkusz1', celldata: [] }];
+                    rawData.forEach((row, r) => {
+                        row.forEach((cell, c) => {
+                            const formula = jexcelInstance.getFormula([c, r]);
+                            const style   = jexcelInstance.getStyle([c, r]);
+                            const isBold  = style && style.match(/font-weight:\s*bold/);
+                            if (cell !== '' || formula || isBold) {
+                                luckysheetData[0].celldata.push({
+                                    r, c, v: { v: cell, f: formula ? '=' + formula : null, m: cell, bl: isBold ? 1 : 0 }
+                                });
+                            }
+                        });
+                    });
+                    res = await fetch(`${serverUrl}/api/check-excel`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ hostname, sheetJson: JSON.stringify(luckysheetData) })
+                    });
+                    report = await res.json();
+                    if (!res.ok) throw new Error(report.error || 'Błąd serwera');
+                    if (api && api.submitTask) api.submitTask({ hostname, sheetJson: JSON.stringify(luckysheetData), score: report.totalScore, maxScore: report.maxScore });
+                } else {
+                    const fileInput = document.getElementById('upload-file');
+                    const formData = new FormData();
+                    formData.append('studentFile', fileInput.files[0]);
+                    formData.append('hostname', hostname);
+
+                    // Determine endpoint and extra params based on task type
+                    let endpoint;
+                    if (taskType === 'offline') {
+                        endpoint = '/api/check-excel';
+                    } else if (taskType === 'docx') {
+                        endpoint = '/api/check-docx';
+                    } else if (taskType === 'pptx') {
+                        endpoint = '/api/check-pptx';
+                    } else if (taskType === 'sql') {
+                        endpoint = '/api/check-sql';
+                    } else if (taskType === 'code-python') {
+                        endpoint = '/api/check-code';
+                        formData.append('language', 'python');
+                        if (currentTask.expectedOutput) formData.append('expectedOutput', currentTask.expectedOutput);
+                        if (currentTask.codeInput) formData.append('input', currentTask.codeInput);
+                    } else if (taskType === 'code-cpp') {
+                        endpoint = '/api/check-code';
+                        formData.append('language', 'cpp');
+                        if (currentTask.expectedOutput) formData.append('expectedOutput', currentTask.expectedOutput);
+                        if (currentTask.codeInput) formData.append('input', currentTask.codeInput);
+                    } else if (taskType === 'graphics-svg') {
+                        endpoint = '/api/check-graphics';
+                        formData.append('format', 'svg');
+                    } else if (taskType === 'pkt') {
+                        endpoint = '/api/check-pkt';
+                    } else {
+                        endpoint = '/api/check-excel';
+                    }
+
+                    res = await fetch(`${serverUrl}${endpoint}`, { method: 'POST', body: formData });
+                    report = await res.json();
+                    if (!res.ok) throw new Error(report.error || 'Błąd serwera');
+                    if (api && api.submitTask) api.submitTask({ hostname, score: report.totalScore, maxScore: report.maxScore });
+                }
 
                 const pct   = report.maxScore > 0 ? Math.round((report.totalScore / report.maxScore) * 100) : 0;
                 const color = pct >= 50 ? 'var(--success)' : 'var(--danger)';
@@ -752,8 +880,6 @@
                 }, 50);
 
                 showToast(pct >= 50 ? `✅ Wynik: ${report.totalScore}/${report.maxScore} (${pct}%)` : `❌ Wynik: ${report.totalScore}/${report.maxScore} (${pct}%)`);
-
-                if (api && api.submitTask) api.submitTask({ hostname, sheetJson: JSON.stringify(luckysheetData), score: report.totalScore, maxScore: report.maxScore });
 
             } catch (e) {
                 showToast('❌ Błąd: ' + e.message, 5000);
