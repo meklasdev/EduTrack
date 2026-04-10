@@ -624,16 +624,23 @@
                 const colorStyle = pct >= 50 ? 'color:#3fb950' : 'color:#f85149';
 
                 // Build detail lines from report.details or report.matches
+                const MAX_VISIBLE_DETAILS = 8;
+                function extractDetailItems(r) {
+                    if (r.details) return r.details;
+                    if (r.matches) return r.matches.map(m => ({ check: m.cell, passed: m.match, note: m.note || '' }));
+                    return [];
+                }
+                const detailItems = extractDetailItems(report);
                 let detailRows = '';
-                const detailItems = report.details || (report.matches ? report.matches.map(m => ({ check: m.cell, passed: m.match, note: m.note || '' })) : []);
                 if (detailItems.length) {
                     detailRows = `<div class="score-details">${
-                        detailItems.slice(0, 8).map(d => `<div class="score-detail-item"><span class="chk">${d.passed ? '✅' : '❌'}</span><span>${d.check}${d.note ? ' — ' + d.note : ''}</span></div>`).join('')
-                        + (detailItems.length > 8 ? `<div style="color:var(--muted);font-size:0.7rem">… i ${detailItems.length - 8} więcej</div>` : '')
+                        detailItems.slice(0, MAX_VISIBLE_DETAILS).map(d => `<div class="score-detail-item"><span class="chk">${d.passed ? '✅' : '❌'}</span><span>${d.check}${d.note ? ' — ' + d.note : ''}</span></div>`).join('')
+                        + (detailItems.length > MAX_VISIBLE_DETAILS ? `<div style="color:var(--muted);font-size:0.7rem">… i ${detailItems.length - MAX_VISIBLE_DETAILS} więcej</div>` : '')
                     }</div>`;
                 }
 
-                const noteText = report.format === 'xlsx' || taskType === 'online' || taskType === 'offline'
+                const isSpreadsheet = cfg.mode === 'spreadsheet';
+                const noteText = isSpreadsheet
                     ? `Poprawność: ${pct}% · Oceniono ${(report.matches || []).length} komórek`
                     : `Poprawność: ${pct}%${report.format ? ' · Format: ' + report.format : ''}`;
 
