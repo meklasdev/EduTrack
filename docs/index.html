@@ -1241,12 +1241,12 @@
         setInterval(addTerminalLine, 1500);
 
         const alertEvents = [
-            { cls: 'blocked', text: '[!] chrome.exe \u2014 przegl\u0105darka', label: 'ZABLOKOWANE' },
-            { cls: 'allowed', text: '[✓] excel.exe \u2014 arkusz kalkulacyjny', label: 'OK' },
-            { cls: 'blocked', text: '[!] discord.exe \u2014 komunikator', label: 'ZABLOKOWANE' },
-            { cls: 'allowed', text: '[✓] code.exe \u2014 VS Code', label: 'OK' },
-            { cls: 'blocked', text: '[!] chatgpt.com \u2014 narz\u0119dzie AI', label: 'ALERT' },
-            { cls: 'allowed', text: '[✓] gimp-2.10.exe \u2014 edytor grafiki', label: 'OK' },
+            { cls: 'blocked', text: '\u2717 chrome.exe \u2014 przegl\u0105darka', label: 'ZABLOKOWANE' },
+            { cls: 'allowed', text: '\u2713 excel.exe \u2014 arkusz kalkulacyjny', label: 'OK' },
+            { cls: 'blocked', text: '\u2717 discord.exe \u2014 komunikator', label: 'ZABLOKOWANE' },
+            { cls: 'allowed', text: '\u2713 code.exe \u2014 VS Code', label: 'OK' },
+            { cls: 'blocked', text: '\u2717 chatgpt.com \u2014 narz\u0119dzie AI', label: 'ALERT' },
+            { cls: 'allowed', text: '\u2713 gimp-2.10.exe \u2014 edytor grafiki', label: 'OK' },
         ];
         const feedEl = document.getElementById('alert-feed');
         let alertIdx = 0;
