@@ -171,6 +171,33 @@
         .score-bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; margin: 8px 0 4px; }
         .score-fill { height: 100%; border-radius: 3px; transition: width 1s ease-out; background: linear-gradient(90deg, var(--purple), var(--purple-light)); }
         .score-note { font-size: 0.72rem; color: var(--muted); }
+        .score-details { margin-top: 8px; font-size: 0.75rem; color: var(--muted); }
+        .score-detail-item { padding: 3px 0; display: flex; gap: 8px; align-items: flex-start; }
+        .score-detail-item .chk { flex-shrink: 0; }
+
+        /* ── Upload workspace ── */
+        #upload-wrap {
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; gap: 16px; padding: 40px 20px; text-align: center;
+        }
+        .upload-zone {
+            border: 2px dashed var(--border); border-radius: 12px;
+            padding: 48px 32px; width: 100%; max-width: 480px;
+            cursor: pointer; transition: border-color 0.2s, background 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--purple); background: rgba(98,100,167,0.06);
+        }
+        #upload-icon { font-size: 3rem; line-height: 1; }
+        #upload-hint { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+        #upload-desc { font-size: 0.78rem; color: var(--muted); }
+        #upload-file-name {
+            font-size: 0.82rem; color: var(--purple-light); font-family: 'JetBrains Mono', monospace;
+            background: rgba(98,100,167,0.1); padding: 6px 14px; border-radius: 6px;
+            display: none; max-width: 480px; word-break: break-all; text-align: center;
+        }
+        #upload-file { display: none; }
 
         /* anti-cheat badge */
         .ac-badge {
@@ -295,6 +322,15 @@
                 <p>Oczekiwanie na serwer EduTrack i zadanie</p>
             </div>
             <div id="spreadsheet"></div>
+            <div id="upload-wrap">
+                <div class="upload-zone" id="upload-zone" onclick="document.getElementById('upload-file').click()">
+                    <div id="upload-icon">📁</div>
+                    <div id="upload-hint">Wybierz plik do przesłania</div>
+                    <div id="upload-desc">Kliknij lub przeciągnij plik tutaj</div>
+                </div>
+                <div id="upload-file-name"></div>
+                <input type="file" id="upload-file" />
+            </div>
         </div>
     </div>
 
@@ -331,6 +367,21 @@
         let jexcelInstance;
         let examStartTime = null;
         let timerInterval = null;
+        let currentTask = null;
+
+        /* ── Task type configuration ── */
+        const TASK_MODES = {
+            'online':       { mode: 'spreadsheet', icon: '📊', label: 'Arkusz Kalkulacyjny', accept: '.xlsx',     hint: 'Pracuj w arkuszu kalkulacyjnym poniżej.' },
+            'offline':      { mode: 'upload',       icon: '📊', label: 'Plik Excel',          accept: '.xlsx',     hint: 'Otwórz MS Excel, wykonaj zadanie i prześlij plik .xlsx.' },
+            'docx':         { mode: 'upload',       icon: '📝', label: 'Dokument Word',        accept: '.docx',     hint: 'Utwórz dokument Word i prześlij plik .docx.' },
+            'pptx':         { mode: 'upload',       icon: '📑', label: 'Prezentacja',          accept: '.pptx',     hint: 'Utwórz prezentację PowerPoint i prześlij plik .pptx.' },
+            'sql':          { mode: 'upload',       icon: '🗄️', label: 'Skrypt SQL',           accept: '.sql',      hint: 'Napisz skrypt SQL i prześlij plik .sql.' },
+            'code-python':  { mode: 'upload',       icon: '🐍', label: 'Kod Python',           accept: '.py',       hint: 'Napisz program w Pythonie i prześlij plik .py.' },
+            'code-cpp':     { mode: 'upload',       icon: '⚙️', label: 'Kod C++',              accept: '.cpp,.c',   hint: 'Napisz program w C++ i prześlij plik .cpp lub .c.' },
+            'graphics-svg': { mode: 'upload',       icon: '🎨', label: 'Grafika SVG',          accept: '.svg',      hint: 'Utwórz grafikę SVG i prześlij plik .svg.' },
+            'pkt':          { mode: 'upload',       icon: '🌐', label: 'Packet Tracer',        accept: '.pkt',      hint: 'Zapisz projekt Packet Tracer i prześlij plik .pkt.' },
+        };
+        function getTaskMode(type) { return TASK_MODES[type] || TASK_MODES['online']; }
 
         // ── Student identity ──
         let hostname = localStorage.getItem('edutrack_student_id') || '';
@@ -410,15 +461,65 @@
             });
         }
 
-        // ── Task started ──
-        socket.on('task-started', (t) => {
+        // ── Apply task ──
+        function applyTask(t) {
+            currentTask = t;
+            const cfg = getTaskMode(t.type);
             document.getElementById('waiting-card').style.display = 'none';
             document.getElementById('task-card').style.display = 'block';
             document.getElementById('task-title-el').innerText = t.title;
-            document.getElementById('task-desc-el').innerText = t.description;
+            document.getElementById('task-desc-el').innerText = `[${cfg.label}] ${t.description}`;
             document.getElementById('check-btn').disabled = false;
             document.getElementById('content-overlay').classList.add('hidden');
-            if (!jexcelInstance) initSpreadsheet();
+            document.getElementById('results').className = '';
+            document.getElementById('results').innerHTML = '';
+
+            if (cfg.mode === 'spreadsheet') {
+                document.getElementById('spreadsheet').style.display = '';
+                document.getElementById('upload-wrap').style.display = 'none';
+                if (!jexcelInstance) initSpreadsheet();
+            } else {
+                document.getElementById('spreadsheet').style.display = 'none';
+                const uw = document.getElementById('upload-wrap');
+                uw.style.display = 'flex';
+                document.getElementById('upload-icon').textContent = cfg.icon;
+                document.getElementById('upload-hint').textContent = cfg.hint;
+                document.getElementById('upload-desc').textContent = `Akceptowane formaty: ${cfg.accept}`;
+                document.getElementById('upload-file').accept = cfg.accept;
+                document.getElementById('upload-file').value = '';
+                document.getElementById('upload-file-name').style.display = 'none';
+                document.getElementById('upload-file-name').textContent = '';
+            }
+        }
+
+        // ── File selection: show file name ──
+        document.getElementById('upload-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const el = document.getElementById('upload-file-name');
+            if (file) { el.textContent = '📎 ' + file.name; el.style.display = 'block'; }
+            else { el.style.display = 'none'; }
+        });
+
+        // ── Drag-and-drop on upload zone ──
+        const uploadZone = document.getElementById('upload-zone');
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById('upload-file').files = dt.files;
+            const el = document.getElementById('upload-file-name');
+            el.textContent = '📎 ' + file.name;
+            el.style.display = 'block';
+        });
+
+        // ── Task started ──
+        socket.on('task-started', (t) => {
+            applyTask(t);
             startTimer();
             toast(`📋 Zadanie uruchomione: ${t.title}`, 'success');
         });
@@ -443,38 +544,113 @@
 
         // ── Submit ──
         document.getElementById('check-btn').onclick = async () => {
-            if (!jexcelInstance) return;
+            const taskType = currentTask ? currentTask.type : 'online';
+            const cfg = getTaskMode(taskType);
+
+            if (cfg.mode === 'spreadsheet' && !jexcelInstance) return;
+            if (cfg.mode === 'upload') {
+                const fileInput = document.getElementById('upload-file');
+                if (!fileInput.files.length) {
+                    toast('❌ Wybierz plik do przesłania.', 'error');
+                    return;
+                }
+            }
+
             const btn = document.getElementById('check-btn');
             btn.disabled = true;
             btn.innerText = '⏳ Sprawdzam...';
 
-            const rawData = jexcelInstance.getData();
-            const luckysheetData = [{ name: 'Zadanie', celldata: [] }];
-            rawData.forEach((row, r) => {
-                row.forEach((cell, c) => {
-                    const formula = jexcelInstance.getFormula([c, r]);
-                    if (cell !== '' || formula) {
-                        luckysheetData[0].celldata.push({ r, c, v: { v: cell, f: formula ? '=' + formula : null, m: cell } });
-                    }
-                });
-            });
-
             try {
-                const res = await fetch('/api/check-excel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostname, sheetJson: JSON.stringify(luckysheetData) })
-                });
-                const report = await res.json();
-                if (!res.ok) throw new Error(report.error || 'Błąd serwera');
+                let report;
+
+                if (cfg.mode === 'spreadsheet') {
+                    const rawData = jexcelInstance.getData();
+                    const luckysheetData = [{ name: 'Zadanie', celldata: [] }];
+                    rawData.forEach((row, r) => {
+                        row.forEach((cell, c) => {
+                            const formula = jexcelInstance.getFormula([c, r]);
+                            if (cell !== '' || formula) {
+                                luckysheetData[0].celldata.push({ r, c, v: { v: cell, f: formula ? '=' + formula : null, m: cell } });
+                            }
+                        });
+                    });
+                    const res = await fetch('/api/check-excel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ hostname, sheetJson: JSON.stringify(luckysheetData) })
+                    });
+                    report = await res.json();
+                    if (!res.ok) throw new Error(report.error || 'Błąd serwera');
+                } else {
+                    const fileInput = document.getElementById('upload-file');
+                    const formData = new FormData();
+                    formData.append('studentFile', fileInput.files[0]);
+                    formData.append('hostname', hostname);
+
+                    let endpoint;
+                    if (taskType === 'offline') {
+                        endpoint = '/api/check-excel';
+                    } else if (taskType === 'docx') {
+                        endpoint = '/api/check-docx';
+                    } else if (taskType === 'pptx') {
+                        endpoint = '/api/check-pptx';
+                    } else if (taskType === 'sql') {
+                        endpoint = '/api/check-sql';
+                    } else if (taskType === 'code-python') {
+                        endpoint = '/api/check-code';
+                        formData.append('language', 'python');
+                        if (currentTask.expectedOutput) formData.append('expectedOutput', currentTask.expectedOutput);
+                        if (currentTask.codeInput) formData.append('input', currentTask.codeInput);
+                    } else if (taskType === 'code-cpp') {
+                        endpoint = '/api/check-code';
+                        formData.append('language', 'cpp');
+                        if (currentTask.expectedOutput) formData.append('expectedOutput', currentTask.expectedOutput);
+                        if (currentTask.codeInput) formData.append('input', currentTask.codeInput);
+                    } else if (taskType === 'graphics-svg') {
+                        endpoint = '/api/check-graphics';
+                        formData.append('format', 'svg');
+                    } else if (taskType === 'pkt') {
+                        endpoint = '/api/check-pkt';
+                    } else {
+                        endpoint = '/api/check-excel';
+                    }
+
+                    const res = await fetch(endpoint, { method: 'POST', body: formData });
+                    report = await res.json();
+                    if (!res.ok) throw new Error(report.error || 'Błąd serwera');
+                }
 
                 const pct = report.maxScore > 0 ? Math.round((report.totalScore / report.maxScore) * 100) : 0;
+                const colorStyle = pct >= 50 ? 'color:#3fb950' : 'color:#f85149';
+
+                // Build detail lines from report.details or report.matches
+                const MAX_VISIBLE_DETAILS = 8;
+                function extractDetailItems(r) {
+                    if (r.details) return r.details;
+                    if (r.matches) return r.matches.map(m => ({ check: m.cell, passed: m.match, note: m.note || '' }));
+                    return [];
+                }
+                const detailItems = extractDetailItems(report);
+                let detailRows = '';
+                if (detailItems.length) {
+                    detailRows = `<div class="score-details">${
+                        detailItems.slice(0, MAX_VISIBLE_DETAILS).map(d => `<div class="score-detail-item"><span class="chk">${d.passed ? '✅' : '❌'}</span><span>${d.check}${d.note ? ' — ' + d.note : ''}</span></div>`).join('')
+                        + (detailItems.length > MAX_VISIBLE_DETAILS ? `<div style="color:var(--muted);font-size:0.7rem">… i ${detailItems.length - MAX_VISIBLE_DETAILS} więcej</div>` : '')
+                    }</div>`;
+                }
+
+                const isSpreadsheet = cfg.mode === 'spreadsheet';
+                const noteText = isSpreadsheet
+                    ? `Poprawność: ${pct}% · Oceniono ${(report.matches || []).length} komórek`
+                    : `Poprawność: ${pct}%${report.format ? ' · Format: ' + report.format : ''}`;
+
                 const resultsEl = document.getElementById('results');
                 resultsEl.className = 'visible';
                 resultsEl.innerHTML = `
-                    <div class="score-big">${report.totalScore} / ${report.maxScore} pkt</div>
+                    <div class="score-big" style="${colorStyle}">${report.totalScore} / ${report.maxScore} pkt</div>
                     <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
-                    <div class="score-note">Poprawność: ${pct}% · Oceniono ${report.matches.length} komórek</div>
+                    <div class="score-note">${noteText}</div>
+                    ${detailRows}
                 `;
                 setTimeout(() => {
                     const fill = document.getElementById('score-fill');
