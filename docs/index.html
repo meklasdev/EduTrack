@@ -517,6 +517,12 @@
         .neon-panel.green  .neon-dot { background: #00ff88; }
         .neon-panel.yellow .neon-dot { background: #ffaa00; }
         .neon-panel.purple .neon-dot { background: #9966ff; }
+        .neon-panel.indigo { border: 1px solid #6644cc; box-shadow: 0 0 20px rgba(102,68,204,0.3), inset 0 0 20px rgba(102,68,204,0.05); }
+        .neon-panel.indigo .neon-panel-header { border-bottom: 1px solid rgba(102,68,204,0.2); }
+        .neon-panel.indigo .neon-panel-icon { background: rgba(102,68,204,0.15); color: #9966ff; }
+        .neon-panel.indigo .neon-panel-sub { color: #9966ff; }
+        .neon-panel.indigo .neon-dot { background: #9966ff; }
+        .flow-path.indigo { stroke: #9966ff; filter: drop-shadow(0 0 4px #9966ff); }
         .mock-screen {
           margin-top: 16px;
           background: rgba(0,0,0,0.6);
@@ -948,7 +954,7 @@
 <span class="c-comment"># 3. Uruchom agenta</span>
 <span class="c-cmd">npm start</span>
 
-<span class="c-comment"># <svg class="svg-icon"><use href="#icon-check"></use></svg> Agent automatycznie wykrywa</span>
+<span class="c-comment"># [&#10003;] Agent automatycznie wykrywa</span>
 <span class="c-comment"># serwer w sieci LAN przez mDNS.</span>
 <span class="c-comment"># Przegl&#261;darka:</span>
 <span class="c-comment"># http://&lt;server-ip&gt;:8080</span>
@@ -1110,21 +1116,21 @@
                             <div class="mock-screen-line ok">&#10003; Mouse: behavior normal</div>
                         </div>
                     </div>
-                    <div class="neon-panel cyan reveal" style="border-color:#6644cc;box-shadow:0 0 20px rgba(102,68,204,0.3),inset 0 0 20px rgba(102,68,204,0.05)">
-                        <div class="neon-panel-header" style="border-bottom-color:rgba(102,68,204,0.2)">
-                            <div class="neon-panel-icon" style="background:rgba(102,68,204,0.15);color:#9966ff">
+                    <div class="neon-panel indigo reveal">
+                        <div class="neon-panel-header">
+                            <div class="neon-panel-icon">
                                 <svg class="svg-icon xl"><use href="#icon-brain"></use></svg>
                             </div>
                             <div>
                                 <div class="neon-panel-title">AI Engine</div>
-                                <div class="neon-panel-sub" style="color:#9966ff">Ollama &middot; LLM lokalny</div>
+                                <div class="neon-panel-sub">Ollama &middot; LLM lokalny</div>
                             </div>
                         </div>
                         <ul class="neon-feature-list">
-                            <li><span class="neon-dot" style="background:#9966ff"></span>Ocenianie kodu Python/C++</li>
-                            <li><span class="neon-dot" style="background:#9966ff"></span>Generowanie egzamin&oacute;w PL</li>
-                            <li><span class="neon-dot" style="background:#9966ff"></span>Detekcja uczni&oacute;w zagro&#380;onych</li>
-                            <li><span class="neon-dot" style="background:#9966ff"></span>AI narracja podsumowa&#324;</li>
+                            <li><span class="neon-dot"></span>Ocenianie kodu Python/C++</li>
+                            <li><span class="neon-dot"></span>Generowanie egzamin&oacute;w PL</li>
+                            <li><span class="neon-dot"></span>Detekcja uczni&oacute;w zagro&#380;onych</li>
+                            <li><span class="neon-dot"></span>AI narracja podsumowa&#324;</li>
                         </ul>
                         <div class="mock-screen">
                             <div class="mock-screen-bar"><div class="ms-dot" style="background:#ff5f57"></div><div class="ms-dot" style="background:#ffbd2e"></div><div class="ms-dot" style="background:#28c840"></div></div>
